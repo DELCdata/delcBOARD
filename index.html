@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<script src="https://delcdata.github.io/DELCAppsHub/delc-kit.js?v=2"></script>
+<script src="https://delcdata.github.io/DELCAppsHub/delc-kit.js?v=3"></script>
 <title>delcBOARD</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://delcdata.github.io/DELCAppsHub/shared-auth.js?v=3"></script>
 <style>
 :root{
-  --navy:#1B3254; --navy2:#26446f; --gold:#C8973A; --delc-green:#84c225; --gold2:#f3e6cc;
+  --navy:#1B3254; --navy2:#26446f; --gold:#1B3254; --delc-green:#84c225; --gold2:#e6ecf5;
   --bg:#F5F5F7; --card:#fff; --ink:#1d2433; --muted:#6b7280; --line:#e5e7eb; --soft:#fafafa;
   --ok:#1E7F45; --okbg:#E6F4EA; --warn:#A15C00; --warnbg:#FDF1DC; --bad:#C0362C; --badbg:#FBEAE8; --info:#1f4f9c; --infobg:#E8EEFB;
 }
@@ -22,14 +22,14 @@ a{color:var(--navy2)}
 .hidden{display:none!important}
 .top{background:var(--navy);color:#fff;display:flex;align-items:center;gap:12px;padding:10px 18px;position:sticky;top:0;z-index:20;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:8px;font-weight:700;letter-spacing:.2px;white-space:nowrap;font-size:16px}
-.logo{background:var(--gold);color:var(--navy);border-radius:6px;padding:2px 7px;font-weight:800;font-size:14px}
+.logo{background:#fff;color:var(--navy);border-radius:6px;padding:2px 7px;font-weight:800;font-size:14px}
 .wm{display:inline-flex;align-items:baseline;font-weight:800;letter-spacing:-.01em;color:#fff;white-space:nowrap}.wm b{color:var(--delc-green);font-weight:800}.wm.pill{background:var(--navy);border-radius:8px;padding:3px 10px}
 .spacer{flex:1}
 .tbtn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:8px;padding:6px 11px;font-size:13px;text-decoration:none}
 .tabs{display:flex;gap:2px;padding:0 12px;background:var(--navy);overflow-x:auto;position:sticky;top:52px;z-index:19}
 .tab{background:transparent;border:0;color:#c9d3e3;padding:10px 14px;border-radius:10px 10px 0 0;font-weight:600;white-space:nowrap;font-size:14px}
 .tab.on{background:var(--bg);color:var(--navy)}
-.tab .n{background:var(--gold);color:var(--navy);border-radius:999px;padding:0 6px;font-size:11px;margin-left:5px;font-weight:800}
+.tab .n{background:#fff;color:var(--navy);border-radius:999px;padding:0 6px;font-size:11px;margin-left:5px;font-weight:800}
 .demo-banner{background:#dbeafe;color:#1e3a8a;text-align:center;font-size:13px;padding:5px}
 .page{max-width:1240px;margin:0 auto;padding:18px}
 .btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 14px;font-weight:600;color:var(--navy);white-space:nowrap}
@@ -55,7 +55,7 @@ label.f input,label.f select,label.f textarea,.inp{border:1px solid var(--line);
 textarea.inp,label.f textarea{resize:vertical;line-height:1.45}
 label.chk{display:flex;gap:8px;align-items:center;font-size:14px}
 .chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700;background:#eef1f6;color:var(--navy);white-space:nowrap}
-.chip.ok{background:var(--okbg);color:var(--ok)}.chip.warn{background:var(--warnbg);color:var(--warn)}.chip.bad{background:var(--badbg);color:var(--bad)}.chip.info{background:var(--infobg);color:var(--info)}.chip.gray{background:#f0f0f2;color:#555}.chip.gold{background:var(--gold2);color:#7a5200}
+.chip.ok{background:var(--okbg);color:var(--ok)}.chip.warn{background:var(--warnbg);color:var(--warn)}.chip.bad{background:var(--badbg);color:var(--bad)}.chip.info{background:var(--infobg);color:var(--info)}.chip.gray{background:#f0f0f2;color:#555}.chip.gold{background:var(--gold2);color:var(--navy)}
 .empty{color:var(--muted);text-align:center;padding:28px 10px;font-size:14px}
 .sectitle{font-size:12px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin:4px 0 6px}
 .center{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
@@ -96,7 +96,7 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:14px}
 .mot{background:#f8f9fb;border:1px solid #eceef2;border-radius:10px;padding:8px 10px;margin-top:8px;font-size:13px}
 .mot .mrow{display:grid;grid-template-columns:minmax(0,2fr) repeat(3,minmax(0,1fr)) auto;gap:6px;align-items:center}
 .mot select,.mot input{border:1px solid var(--line);border-radius:8px;padding:5px 7px;font-size:13px;background:#fff;min-width:0;width:100%}
-.act{display:flex;gap:6px;align-items:center;font-size:13px;margin-top:6px;background:#fffaf0;border:1px solid #f3e6cc;border-radius:10px;padding:6px 8px}
+.act{display:flex;gap:6px;align-items:center;font-size:13px;margin-top:6px;background:#eef3fa;border:1px solid #dbe4f0;border-radius:10px;padding:6px 8px}
 .act input,.act select{border:1px solid var(--line);border-radius:8px;padding:4px 6px;font-size:13px;background:#fff;min-width:0}
 .ups{margin:4px 0 0 6px;padding-left:18px;font-size:14px}
 .ups li{margin:2px 0}
@@ -341,7 +341,7 @@ document.addEventListener('focusout', () => setTimeout(() => { if (pendingReload
 
 /* ---------------- demo seed (offline demo mode only) ---------------- */
 function DEMO_SEED() {
-  const B = [['council','Church Council','council','#1B3254',10,true],['executive','Executive Committee','executive','#6D4C41',20,false],['congregation','Congregational Meeting','congregational','#C8973A',30,true],['property','Property & Facilities Committee','committee','#2F80ED',40,true]];
+  const B = [['council','Church Council','council','#1B3254',10,true],['executive','Executive Committee','executive','#6D4C41',20,false],['congregation','Congregational Meeting','congregational','#B83280',30,true],['property','Property & Facilities Committee','committee','#2F80ED',40,true]];
   const M = [['m-tiffany','Pr. Tiffany Marvich','Pastor',['council','executive','congregation']],['m-derek','Derek Detrich','Council President',['council','executive','congregation']],['m-katy','Katy Pope','Council',['council','congregation']],['m-chriss','Chris Scordo','Treasurer / Finance',['council','congregation']],['m-barb','Barb Piper','Council',['council','congregation']],['m-ellie','Ellie Watts','Council',['council','congregation']],['m-chrisj','Chris Jerome','Council',['council','property']]];
   const D = [['d-pastoral','Pastoral','Pr. Tiffany Marvich'],['d-worship','Worship & Music','Barb Piper'],['d-hospitality','Service & Hospitality','Derek Detrich'],['d-facility','Facility & Security','Chris Jerome'],['d-finance','Finance & Treasury','Chris Scordo']];
   const t0 = nowIso();
@@ -1277,7 +1277,7 @@ document.addEventListener('input', e => { const id = e.target.dataset && e.targe
 TBL.projects = 'board_projects'; KINDS.push('projects'); S.projects = []; S.deptTab = 'plans'; S.depView = 'list'; S.calF = 'all'; S.draftProjects = null;
 var PSTAT = {idea: {name: 'Idea', cls: 'gray'}, planning: {name: 'Planning', cls: 'info'}, active: {name: 'In progress', cls: 'gold'}, done: {name: 'Done', cls: 'ok'}, cancelled: {name: 'Cancelled', cls: 'gray'}};
 var PAPPR = {none: '', requested: 'Approval requested', on_agenda: 'On the council agenda', approved: 'Approved by council', declined: 'Not approved'};
-var DEPT_COLORS = ['#1B3254','#C8973A','#2F80ED','#1a6e3c','#7e3a8a','#c05c1a','#0f766e','#b91c1c','#4b5563','#1d6fa5','#a16207','#6D4C41','#be185d'];
+var DEPT_COLORS = ['#1B3254','#B83280','#2F80ED','#1a6e3c','#7e3a8a','#c05c1a','#0f766e','#b91c1c','#4b5563','#1d6fa5','#a16207','#6D4C41','#be185d'];
 const projOf = did => S.projects.filter(p => p.department_id === did);
 const proj = id => S.projects.find(p => p.id === id);
 const pIcon = p => p.kind === 'event' ? '📅' : '🛠️';
@@ -1602,7 +1602,7 @@ function fbBox(p, can) {
     if (!e) return `<div class="box"><div class="sectitle">🍽️ F&amp;B Events</div><div class="small">Linked to F&amp;B event #${esc(p.fb_event_id)} (not loaded yet).</div><div class="row" style="gap:6px;margin-top:6px"><a class="btn xs" href="${FB_URL}" target="_blank" rel="noopener">Open F&amp;B Portal ↗</a>${can ? '<button class="btn xs ghost" data-act="fbUnlink">Unlink</button>' : ''}</div></div>`;
     const f = e.financials || {}; const att = fbTotal(e);
     const drift = (e.name !== p.title || String(e.date) !== String(p.start_date || ''));
-    return `<div class="box" style="border-color:#c9973a"><div class="row between"><div class="sectitle" style="margin:0">🍽️ F&amp;B Events</div><span class="chip info">${esc(e.status || 'Scheduled')}</span></div>
+    return `<div class="box" style="border-color:#1B3254"><div class="row between"><div class="sectitle" style="margin:0">🍽️ F&amp;B Events</div><span class="chip info">${esc(e.status || 'Scheduled')}</span></div>
       <div class="small" style="margin-top:4px"><b>${esc(e.name)}</b> · ${esc(e.type || '')} · ${esc(fmtD(e.date, {month: 'short', day: 'numeric', year: 'numeric'}))}</div>
       ${e.menu ? `<div class="tiny muted">Menu: ${esc(e.menu)}</div>` : ''}
       ${att || f.totalCost || f.totalOffering ? `<div class="row" style="gap:6px;margin-top:6px;flex-wrap:wrap">${att ? `<span class="chip gray">👥 ${att}</span>` : ''}${f.totalCost ? `<span class="chip gray">Cost ${money(f.totalCost)}</span>` : ''}${f.totalOffering ? `<span class="chip gray">Offering ${money(f.totalOffering)}</span>` : ''}${f.totalCost || f.totalOffering ? `<span class="chip ${(f.totalIncome || 0) >= 0 ? 'ok' : 'bad'}">Net ${money(f.totalIncome || 0)}</span>` : ''}</div>` : '<div class="tiny muted" style="margin-top:4px">Menu, purchases, volunteers and the offering count are kept in the F&amp;B Portal.</div>'}
@@ -1750,14 +1750,14 @@ TBL.templates = 'board_task_templates'; KINDS.push('templates'); S.templates = [
 S.view = 'home'; S.calMode = 'month'; S.calMonth = today().slice(0, 7); S.calDay = null;
 var FB_FOOD = ['Dinner','Luncheon','Breakfast','Mug','Funeral'];
 var EV_TYPES = FB_TYPES.slice();
-var JOB_COLORS = ['#1a3355','#c9973a','#1a6e3c','#7e3a8a','#c05c1a','#0f766e','#b91c1c','#2F80ED'];
+var JOB_COLORS = ['#1B3254','#B83280','#1a6e3c','#7e3a8a','#c05c1a','#0f766e','#b91c1c','#2F80ED'];
 ROLES.admin.desc = 'everything: reviews department updates, creates church events, manages people, groups and task templates';
 
 /* ---------- look: borrow the F&B Event Portal styling ---------- */
 (function () {
   document.head.insertAdjacentHTML('beforeend', `<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
 <style id="fbstyle">
-:root{--navy:#1a3355;--navyD:#122440;--gold:#c9973a;--bg:#F2F2F7;--line:#e3e3e8;--muted:#6b6b72;--cream:#F7F7FA;--soft:#F7F7FA;--blue:#3466B0}
+:root{--navy:#1B3254;--navyD:#14273F;--gold:#1B3254;--bg:#F2F2F7;--line:#e3e3e8;--muted:#6b6b72;--cream:#F7F7FA;--soft:#F7F7FA;--blue:#3466B0}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Segoe UI",Lato,system-ui,sans-serif;background:var(--bg);color:#1C1C1E;-webkit-font-smoothing:antialiased}
 .card{border-radius:14px;border-color:var(--line);box-shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04)}
 .item,.ai,.mhead2,.calrow{border-color:var(--line)}
@@ -1776,8 +1776,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue"
 .tab-bar{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .tab-bar::-webkit-scrollbar{display:none}
 .htab{background:transparent;border:none;border-bottom:3px solid transparent;color:rgba(255,255,255,.55);padding:9px 16px;font-size:13px;cursor:pointer;font-weight:700;white-space:nowrap}
-.htab.on{color:#fff;border-bottom-color:var(--gold);background:rgba(255,255,255,.13)}
-.htab .n{background:var(--gold);color:#fff;border-radius:999px;padding:0 6px;font-size:11px;margin-left:5px;font-weight:900}
+.htab.on{color:#fff;border-bottom-color:#fff;background:rgba(255,255,255,.13)}
+.htab .n{background:#fff;color:var(--navy);border-radius:999px;padding:0 6px;font-size:11px;margin-left:5px;font-weight:900}
 .sub-tab-bar{display:flex;border-bottom:2px solid var(--line);margin-bottom:16px;overflow-x:auto}
 .sub-tab{background:none;border:none;border-bottom:3px solid transparent;padding:8px 14px;font-size:13px;cursor:pointer;font-weight:700;color:var(--muted);margin-bottom:-2px;white-space:nowrap}
 .sub-tab.on{color:var(--navy);border-bottom-color:var(--gold)}
@@ -1933,8 +1933,8 @@ function calItems(from, to, scope) {
     if (p.start_date) { const end = p.end_date && p.end_date > p.start_date ? p.end_date : p.start_date; for (let d = p.start_date; d <= end && d <= to; d = addDays(d, 1)) if (inR(d)) out.push({date: d, kind: p.kind === 'event' ? 'event' : 'project', p, title: p.title, color: deptColor(p.department_id), first: d === p.start_date}); }
     (p.tasks || []).filter(t => !t.done && taskVisible(t, p) && inR(t.due) && (isAdmin() || canCoordinate() || involved(p) || isMyTask(t, p))).forEach(t => out.push({date: t.due, kind: 'task', p, t, title: p.title + ': ' + t.text, color: deptColor(t.dept_id || p.department_id)}));
   });
-  if (role() !== 'director' || scope !== 'mine') S.meetings.filter(m => inR(m.meeting_date) && (isUpcoming(m) || String(m.meeting_date) >= from) && !m.imported).forEach(m => out.push({date: m.meeting_date, kind: 'meeting', m, title: m.title, color: (body(m.body_id) || {}).color || '#1a3355'}));
-  if (scope !== 'mine') fbGhosts().filter(e => inR(e.date)).forEach(e => out.push({date: e.date, kind: 'fb', e, title: e.name, color: '#c9973a'}));
+  if (role() !== 'director' || scope !== 'mine') S.meetings.filter(m => inR(m.meeting_date) && (isUpcoming(m) || String(m.meeting_date) >= from) && !m.imported).forEach(m => out.push({date: m.meeting_date, kind: 'meeting', m, title: m.title, color: (body(m.body_id) || {}).color || '#1B3254'}));
+  if (scope !== 'mine') fbGhosts().filter(e => inR(e.date)).forEach(e => out.push({date: e.date, kind: 'fb', e, title: e.name, color: '#B83280'}));
   if (typeof eduCalItems === 'function') eduCalItems(from, to, scope).forEach(x => out.push(x));
   const ord = {meeting: 0, event: 1, edu: 1, fb: 2, project: 3, task: 4};
   return out.sort((a, b) => String(a.date).localeCompare(String(b.date)) || ord[a.kind] - ord[b.kind]);
@@ -1948,7 +1948,7 @@ function eventCard(p) {
   const nMine = visTasks(p).filter(x => !x.done && isMyTask(x, p)).length;
   const late = visTasks(p).filter(x => !x.done && x.due && x.due < today()).length;
   return `<div class="event-card" data-act="openProj" data-id="${esc(p.id)}" style="border-top-color:${c}">
-    <span class="type-pill" style="background:${c}1f;color:${c}">${esc(p.event_type || (p.kind === 'event' ? 'Event' : 'Project'))}</span>${pChip(p.status)}${fb ? ' <span class="type-pill" style="background:#fdf1dc;color:#7a5200">🍽️ F&amp;B</span>' : ''}
+    <span class="type-pill" style="background:${c}1f;color:${c}">${esc(p.event_type || (p.kind === 'event' ? 'Event' : 'Project'))}</span>${pChip(p.status)}${fb ? ' <span class="type-pill" style="background:#f8e7f0;color:#9d2a6c">🍽️ F&amp;B</span>' : ''}
     <div class="et">${esc(p.title)}</div>
     <div class="ec-stats"><div><div class="ec-stat-label">Date</div><div class="ec-stat-val">${p.start_date ? esc(fmtD(p.start_date, {weekday: 'short', month: 'short', day: 'numeric'})) : '—'}</div></div>
       <div><div class="ec-stat-label">Time</div><div class="ec-stat-val">${esc(p.start_time || '—')}</div></div>
@@ -2021,7 +2021,7 @@ function calLine(it) {
   const dd = dOf(it.date); const day = `<div class="calday"><span>${dd.toLocaleDateString('en-US', {weekday: 'short'})}</span><b>${dd.getDate()}</b></div>`;
   if (it.kind === 'edu') { const m = it.c.meets || {}; return `<div class="calrow" ${itemAct(it)} style="border-left:4px solid ${it.color}">${day}<div class="main"><b>🎒 ${esc(it.c.name)}</b> <span class="type-pill" style="margin:0">Class</span><div class="tiny muted">Christian Education · delcEDUCATION${m.time ? ' · ' + esc(m.time) : ''}${it.c.place ? ' · ' + esc(it.c.place) : ''}</div></div></div>`; }
   if (it.kind === 'meeting') return `<div class="calrow" ${itemAct(it)}>${day}<div class="main"><b>🏛️ ${esc(it.m.title)}</b><div class="tiny muted">${esc(it.m.start_time || '')} ${esc(it.m.location || '')}</div></div></div>`;
-  if (it.kind === 'fb') return `<div class="calrow" ${itemAct(it)} style="border-left:4px solid var(--gold)">${day}<div class="main"><b>🍽️ ${esc(it.e.name)}</b><div class="tiny muted">F&amp;B Events · ${esc(it.e.type || '')} · ${esc(it.e.status || '')}${it.e.start_time ? ' · ' + esc(to12(it.e.start_time)) : ''}</div></div></div>`;
+  if (it.kind === 'fb') return `<div class="calrow" ${itemAct(it)} style="border-left:4px solid #B83280">${day}<div class="main"><b>🍽️ ${esc(it.e.name)}</b><div class="tiny muted">F&amp;B Events · ${esc(it.e.type || '')} · ${esc(it.e.status || '')}${it.e.start_time ? ' · ' + esc(to12(it.e.start_time)) : ''}</div></div></div>`;
   const d = dept(it.kind === 'task' ? (it.t.dept_id || it.p.department_id) : it.p.department_id) || {};
   if (it.kind === 'task') return `<div class="calrow" ${itemAct(it)} style="border-left:4px solid ${it.color}">${day}<div class="main">${udot(it.t.due)}<b>${esc(it.p.title)}:</b> ${esc(it.t.text)} <span class="tiny muted">due</span><div class="tiny muted">${esc(it.p.title)} · ${esc(d.name || '')}${it.t.who ? ' · 👤 ' + esc(it.t.who) : ''}</div></div></div>`;
   const sup = (it.p.support_dept_ids || []).map(id => (dept(id) || {}).name).filter(Boolean);
@@ -2033,7 +2033,7 @@ const tplFor = type => S.templates.find(t => t.active !== false && sameName(t.ev
 function viewTemplates() {
   const L = S.templates.slice().sort((a, b) => String(a.event_type || '').localeCompare(String(b.event_type || '')) || String(a.name).localeCompare(String(b.name)));
   return `<div class="page"><div class="row between" style="margin-bottom:12px"><div class="small muted" style="max-width:640px">When an event is put on the calendar, the template for its event type adds these tasks automatically. Due dates are counted back from the event date, and each task goes to the department and person listed.</div><button class="btn gold" data-act="tplNew">+ New template</button></div>
-    <div class="event-grid">${L.map(t => { const ft = S.fbTpl.find(f => f.id === t.fb_template_id); return `<div class="event-card" data-act="tplOpen" data-id="${esc(t.id)}" style="border-top-color:var(--gold)">
+    <div class="event-grid">${L.map(t => { const ft = S.fbTpl.find(f => f.id === t.fb_template_id); return `<div class="event-card" data-act="tplOpen" data-id="${esc(t.id)}" style="border-top-color:#B83280">
       <span class="type-pill">${esc(t.event_type || 'Any type')}</span>${t.active === false ? '<span class="chip gray">Off</span>' : ''}<div class="et">${esc(t.name)}</div>
       <div class="ec-stats"><div><div class="ec-stat-label">Tasks</div><div class="ec-stat-val">${(t.tasks || []).length}</div></div><div><div class="ec-stat-label">Starts</div><div class="ec-stat-val">${(t.tasks || []).length ? Math.max(...t.tasks.map(x => +x.days_before || 0)) + ' days before' : '—'}</div></div></div>
       ${ft ? `<div class="tiny muted">🍽️ F&amp;B day-of schedule: ${esc(ft.name)}</div>` : ''}</div>`; }).join('') || '<div class="card empty">No templates yet. Add one for each kind of event (Dinner, Mug, Craft…) with the tasks that always need doing.</div>'}</div></div>`;
@@ -2224,7 +2224,7 @@ myMember = function () { const m = _myMember8(); if (S.backend === 'local' && m)
 /* ---------- load F&B schedule templates ---------- */
 async function loadFbTpl() {
   try {
-    if (S.backend === 'local') { S.fbTpl = [{id: 'tpl-demo-dinner', name: 'Dinner schedule', jobs: {baseStart: '17:00', endOff: 120, jobs: [{name: 'Kitchen', color: '#1a3355', tasks: [{name: 'Cook', startOff: -180, endOff: 0, needed: 3}, {name: 'Serve', startOff: 0, endOff: 90, needed: 4}]}, {name: 'Hall', color: '#c9973a', tasks: [{name: 'Set up tables', startOff: -120, endOff: -60, needed: 4}, {name: 'Greeters', startOff: -15, endOff: 30, needed: 2}, {name: 'Clean up', startOff: 90, endOff: 150, needed: 5}]}]}}]; return; }
+    if (S.backend === 'local') { S.fbTpl = [{id: 'tpl-demo-dinner', name: 'Dinner schedule', jobs: {baseStart: '17:00', endOff: 120, jobs: [{name: 'Kitchen', color: '#1B3254', tasks: [{name: 'Cook', startOff: -180, endOff: 0, needed: 3}, {name: 'Serve', startOff: 0, endOff: 90, needed: 4}]}, {name: 'Hall', color: '#B83280', tasks: [{name: 'Set up tables', startOff: -120, endOff: -60, needed: 4}, {name: 'Greeters', startOff: -15, endOff: 30, needed: 2}, {name: 'Clean up', startOff: 90, endOff: 150, needed: 5}]}]}}]; return; }
     const r = await B.sb.from('fb_job_templates').select('id,name,jobs').order('name'); if (!r.error) S.fbTpl = r.data || [];
   } catch (_) {}
 }
@@ -2252,7 +2252,7 @@ const _reload8 = reload; reload = async function () { await Promise.all([_reload
 /* ================= p9: Church Services — weekly services + weekly report (from Attendance & Giving, read-only) ================= */
 var ATT_URL = 'https://delcdata.github.io/delcAttendanceOffering/';
 var ATT_DENOMS = [['hundreds',100,'Hundreds'],['fifties',50,'Fifties'],['twenties',20,'Twenties'],['tens',10,'Tens'],['fives',5,'Fives'],['ones',1,'Ones']];
-var SVC_C = {'8am': '#3466B0', '10am': '#B8862A', online: '#1B9A72', other: '#8B5CC4', unsplit: '#8E8E96'};
+var SVC_C = {'8am': '#3466B0', '10am': '#B83280', online: '#1B9A72', other: '#8B5CC4', unsplit: '#8E8E96'};
 S.att = {}; S.attLoaded = false; S.svcWeek = null; S.svcTab = 'week';
 VIEW_TITLES.services = 'Church Services';
 
@@ -2286,17 +2286,17 @@ table.cmp tr.tot td{font-weight:700}
 .wk-head .ttl{flex:1;min-width:180px}.wk-head .ttl small{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}.wk-head .ttl b{font-size:20px;color:var(--navy)}
 /* printable report */
 .rep{background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px 30px;max-width:860px;margin:0 auto;color:#1a1a1a;font-size:13px}
-.r-head{display:flex;gap:16px;align-items:center;border-bottom:3px solid #1a3355;padding-bottom:12px;margin-bottom:14px}
+.r-head{display:flex;gap:16px;align-items:center;border-bottom:3px solid #1B3254;padding-bottom:12px;margin-bottom:14px}
 .r-head img{height:58px}
 .r-church{font-size:11px;font-weight:700;color:#6b6b72;text-transform:uppercase;letter-spacing:.05em}
-.r-title{font-size:22px;font-weight:900;color:#1a3355}.r-sub{font-size:13px;color:#444}
-.r-kpis{display:flex;gap:16px;text-align:right}.r-kpis span{display:block;font-size:10px;color:#6b6b72;text-transform:uppercase;font-weight:700}.r-kpis b{font-size:18px;color:#1a3355}
-.rep h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#1a3355;margin:14px 0 6px}
+.r-title{font-size:22px;font-weight:900;color:#1B3254}.r-sub{font-size:13px;color:#444}
+.r-kpis{display:flex;gap:16px;text-align:right}.r-kpis span{display:block;font-size:10px;color:#6b6b72;text-transform:uppercase;font-weight:700}.r-kpis b{font-size:18px;color:#1B3254}
+.rep h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#1B3254;margin:14px 0 6px}
 .r-cols{display:grid;grid-template-columns:1fr 1fr;gap:22px}
 .r-t{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
-.r-t th{font-size:10px;text-transform:uppercase;color:#6b6b72;text-align:left;border-bottom:1.5px solid #1a3355;padding:4px 6px}
+.r-t th{font-size:10px;text-transform:uppercase;color:#6b6b72;text-align:left;border-bottom:1.5px solid #1B3254;padding:4px 6px}
 .r-t td{padding:5px 6px;border-bottom:1px solid #e6e6ea}
-.r-t .r{text-align:right}.r-t .b{font-weight:700}.r-t tr.tot td{font-weight:800;border-top:1.5px solid #1a3355}
+.r-t .r{text-align:right}.r-t .b{font-weight:700}.r-t tr.tot td{font-weight:800;border-top:1.5px solid #1B3254}
 .r-mut{color:#6b6b72}.r-note{font-size:11px;color:#6b6b72;margin-top:4px}
 .r-notes{border:1px solid #e6e6ea;border-radius:6px;padding:8px}
 .r-sigs{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:26px}
@@ -2674,7 +2674,7 @@ function viewTemplates() {
     <div class="card" data-act="tplOpen" data-id="tpl-library" style="cursor:pointer"><div class="row between"><b>Steph’s event checklist</b><button class="btn sm">Edit list</button></div>
       <div class="tiny muted" style="margin-top:4px">${TGROUPS.map(g => { const n = L.filter(x => (x.grp || 'Planning') === g).length; return n ? `${esc(g)} ${n}` : ''; }).filter(Boolean).join(' · ')}</div></div>
     <div class="hsec">Event types</div>
-    <div class="event-grid">${typeRows.map(({type, row, flags}) => { const on = NEEDS.filter(([k]) => flags[k]); const ft = row && S.fbTpl.find(f => f.id === row.fb_template_id); return `<div class="event-card" data-act="tplType" data-v="${esc(type)}" style="border-top-color:${FB_TYPES.includes(type) && type !== 'Other' ? 'var(--gold)' : 'var(--blue)'}">
+    <div class="event-grid">${typeRows.map(({type, row, flags}) => { const on = NEEDS.filter(([k]) => flags[k]); const ft = row && S.fbTpl.find(f => f.id === row.fb_template_id); return `<div class="event-card" data-act="tplType" data-v="${esc(type)}" style="border-top-color:${FB_TYPES.includes(type) && type !== 'Other' ? '#B83280' : 'var(--blue)'}">
       <div class="et">${esc(type)}</div><div class="row" style="gap:4px;flex-wrap:wrap">${on.map(([k, l]) => `<span class="type-pill" style="margin:0">${esc(l)}</span>`).join('') || '<span class="tiny muted">Calendar only</span>'}</div>
       <div class="tiny muted" style="margin-top:6px">${LIB().filter(t => t.when === 'always' || flags[t.when]).length + ((row && row.tasks) || []).filter(t => t.text).length} tasks${row && (row.tasks || []).filter(t => t.text).length ? ` (incl. ${(row.tasks || []).filter(t => t.text).length} extra)` : ''}${ft ? ' · 🍽️ ' + esc(ft.name) : ''}${row ? '' : ' · default'}</div></div>`; }).join('')}</div></div>`;
 }
@@ -2930,7 +2930,7 @@ ACT.pjShare = async function (d, e) { if (e) e.stopPropagation(); pjGrab(); cons
 
 /* ================= p13: Volunteer schedule (F&B-style jobs & time slots) + hand-off from the office to the director ================= */
 var SJ_PRESETS = ['Prep', 'Setup', 'Kitchen', 'Hospitality', 'Serving', 'Cleanup'];
-var SJ_COLORS = ['#3466B0', '#B8862A', '#1B9A72', '#8B5CC4', '#C05C1A', '#0F766E'];
+var SJ_COLORS = ['#3466B0', '#B83280', '#1B9A72', '#8B5CC4', '#C05C1A', '#0F766E'];
 S.vols = [];
 (function () {
   document.head.insertAdjacentHTML('beforeend', `<style id="sjstyle">
@@ -2949,7 +2949,7 @@ S.vols = [];
 .sj-x{width:28px;height:28px;border-radius:50%;border:none;background:rgba(118,118,128,.12);color:#555;cursor:pointer;font-size:14px;font-weight:700;flex-shrink:0}
 .sj-x:hover{background:rgba(118,118,128,.22)}
 .sj-people{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.pchip{display:inline-flex;align-items:center;gap:4px;background:color-mix(in srgb,var(--c,#1a3355) 13%,#fff);border-radius:980px;padding:3px 4px 3px 10px;font-size:13px;font-weight:500}
+.pchip{display:inline-flex;align-items:center;gap:4px;background:color-mix(in srgb,var(--c,#1B3254) 13%,#fff);border-radius:980px;padding:3px 4px 3px 10px;font-size:13px;font-weight:500}
 .pchip button{border:none;background:transparent;color:#666;cursor:pointer;font-size:14px;width:20px;height:20px;border-radius:50%}
 .pchip.openc{background:transparent;border:1.5px dashed #d4a35a;color:#b45309;padding:2px 10px;font-size:12px;font-weight:700}
 .sj-pick{width:auto!important;min-width:130px;max-width:220px;padding:5px 10px!important;font-size:13px!important;border-radius:980px!important;background:rgba(118,118,128,.10)!important;border-color:transparent!important}
@@ -3065,7 +3065,7 @@ mProject = function (p) {
 ACT.volSheet = function () {
   const r = pjGrab(); const jobs = r._jobs || jobsFor(r);
   const rowsFor = t => Array.from({length: Math.max(+t.needed || 0, (t.people || []).length)}, (_, k) => `<tr><td class="n">${k + 1}.</td><td>${esc(volName((t.people || [])[k]) || '')}</td><td class="ph"></td></tr>`).join('');
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Sign-up — ${esc(r.title)}</title><style>body{font-family:Helvetica,Arial,sans-serif;margin:28px;color:#1a1a1a}h1{margin:0;color:#1a3355;font-size:22px}.sub{color:#555;margin:2px 0}.hd{display:flex;gap:14px;align-items:center;border-bottom:3px solid #1a3355;padding-bottom:10px;margin-bottom:14px}.hd img{height:54px}h2{font-size:15px;margin:16px 0 4px;padding-left:8px;border-left:5px solid var(--c)}.blk{break-inside:avoid;margin:0 0 10px 13px}.blk .t{font-size:12.5px;color:#333;margin:6px 0 3px;font-weight:700}table{width:100%;border-collapse:collapse}td{border-bottom:1px solid #999;height:26px;font-size:13px}td.n{width:28px;color:#888}td.ph{width:34%}th{font-size:10px;text-align:left;color:#777;text-transform:uppercase}</style></head><body>
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Sign-up — ${esc(r.title)}</title><style>body{font-family:Helvetica,Arial,sans-serif;margin:28px;color:#1a1a1a}h1{margin:0;color:#1B3254;font-size:22px}.sub{color:#555;margin:2px 0}.hd{display:flex;gap:14px;align-items:center;border-bottom:3px solid #1B3254;padding-bottom:10px;margin-bottom:14px}.hd img{height:54px}h2{font-size:15px;margin:16px 0 4px;padding-left:8px;border-left:5px solid var(--c)}.blk{break-inside:avoid;margin:0 0 10px 13px}.blk .t{font-size:12.5px;color:#333;margin:6px 0 3px;font-weight:700}table{width:100%;border-collapse:collapse}td{border-bottom:1px solid #999;height:26px;font-size:13px}td.n{width:28px;color:#888}td.ph{width:34%}th{font-size:10px;text-align:left;color:#777;text-transform:uppercase}</style></head><body>
     <div class="hd"><img src="${LOGO_SQ}"><div><h1>${esc(r.title)} — Volunteer sign-up</h1><div class="sub">${esc(r.start_date ? fmtD(r.start_date, {weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'}) : '')}${r.location ? ' · ' + esc(r.location) : ''}</div></div></div>
     ${jobs.map((j, ji) => `<h2 style="--c:${j.color || SJ_COLORS[ji % 6]}">${esc(j.name || 'Volunteers')}</h2>${(j.tasks || []).map(t => `<div class="blk"><div class="t">${esc(t.name || j.name || '')} · ${t.date && t.date !== r.start_date ? esc(fmtD(t.date, {weekday: 'short', month: 'short', day: 'numeric'})) + ' · ' : ''}${t.start ? esc(to12(t.start)) : ''}${t.end ? ' – ' + esc(to12(t.end)) : ''} · ${+t.needed || 0} needed</div><table><tr><th></th><th>Name</th><th>Phone</th></tr>${rowsFor(t)}</table></div>`).join('')}`).join('')}
     <script>setTimeout(function(){window.print()},300)<\/script></body></html>`;
@@ -3160,7 +3160,7 @@ const _demoRole13 = ACT.demoRole; ACT.demoRole = d => { S.calScope = null; _demo
     if (v) { v.flags = {...(v.flags || {}), signup: true}; v.handoff = {to: 'Derek Detrich', to_id: 'm-derek', by: 'Steph Benton', at: nowIso(), status: 'open'};
       v.tasks.unshift({id: 'tplan', key: 'plan', text: 'Finish planning — volunteers, budget, donations & details', who: 'Derek Detrich', who_id: 'm-derek', due: addDays(v.start_date, -21) < today() ? today() : addDays(v.start_date, -21), offset: 21, dept_id: null, share: true, done: false}); }
     const pw = (d.projects || []).find(p => p.title === 'Paint Workshop');
-    if (pw) pw.jobs = [{id: 'j1', name: 'Setup', color: '#B8862A', tasks: [{id: 't1', name: 'Tables, easels & drop cloths', date: pw.start_date, start: '11:30', end: '12:45', needed: 3, people: ['vd2', 'vd3'], notes: ''}]},
+    if (pw) pw.jobs = [{id: 'j1', name: 'Setup', color: '#B83280', tasks: [{id: 't1', name: 'Tables, easels & drop cloths', date: pw.start_date, start: '11:30', end: '12:45', needed: 3, people: ['vd2', 'vd3'], notes: ''}]},
       {id: 'j2', name: 'Hospitality', color: '#1B9A72', tasks: [{id: 't2', name: 'Greet & check in', date: pw.start_date, start: '12:45', end: '13:30', needed: 2, people: ['vd1'], notes: ''}, {id: 't3', name: 'Snacks & drinks', date: pw.start_date, start: '13:00', end: '16:30', needed: 2, people: [], notes: ''}]},
       {id: 'j3', name: 'Cleanup', color: '#8B5CC4', tasks: [{id: 't4', name: 'Brushes, tables, floors', date: pw.start_date, start: '16:30', end: '17:30', needed: 4, people: [], notes: ''}]}];
     return d;
@@ -3347,7 +3347,7 @@ S.su = {};
 .sulink code{font-size:12px;word-break:break-all;flex:1;min-width:160px}
 /* public page */
 .sup{max-width:640px;margin:0 auto;padding:16px}
-.sup-hero{background:linear-gradient(135deg,#1a3355,#122440);color:#fff;border-radius:18px;padding:18px 18px 16px;margin-bottom:14px}
+.sup-hero{background:linear-gradient(135deg,#1B3254,#14273F);color:#fff;border-radius:18px;padding:18px 18px 16px;margin-bottom:14px}
 .sup-hero img{height:44px;border-radius:8px;background:#fff;padding:2px}
 .sup-hero h1{margin:10px 0 2px;font-size:24px;letter-spacing:-.3px}
 .sup-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
@@ -3430,7 +3430,7 @@ Object.assign(ACT, {
   async suPreview() { const r = pjGrab(); if (!proj(r.id)) { toast('Save the event first', 'bad'); return; } await pjCommit(); S.suPreview = r.id; S.su = {}; S.modal = null; renderModal(); renderApp(); scrollTo(0, 0); },
   suPrint() {
     const r = pjGrab(); const st = attendStats(r); const types = ttOf(r);
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Attending — ${esc(r.title)}</title><style>body{font-family:Helvetica,Arial,sans-serif;margin:28px;color:#1a1a1a}h1{margin:0;color:#1a3355;font-size:22px}.hd{display:flex;gap:14px;align-items:center;border-bottom:3px solid #1a3355;padding-bottom:10px;margin-bottom:12px}.hd img{height:54px}table{width:100%;border-collapse:collapse;font-size:13px}th{font-size:10px;text-transform:uppercase;color:#777;text-align:left;border-bottom:1.5px solid #1a3355;padding:4px}td{border-bottom:1px solid #bbb;padding:6px 4px;height:22px}.r{text-align:right}tfoot td{font-weight:800;border-top:2px solid #1a3355}</style></head><body>
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Attending — ${esc(r.title)}</title><style>body{font-family:Helvetica,Arial,sans-serif;margin:28px;color:#1a1a1a}h1{margin:0;color:#1B3254;font-size:22px}.hd{display:flex;gap:14px;align-items:center;border-bottom:3px solid #1B3254;padding-bottom:10px;margin-bottom:12px}.hd img{height:54px}table{width:100%;border-collapse:collapse;font-size:13px}th{font-size:10px;text-transform:uppercase;color:#777;text-align:left;border-bottom:1.5px solid #1B3254;padding:4px}td{border-bottom:1px solid #bbb;padding:6px 4px;height:22px}.r{text-align:right}tfoot td{font-weight:800;border-top:2px solid #1B3254}</style></head><body>
       <div class="hd"><img src="${LOGO_SQ}"><div><h1>${esc(r.title)} — Attending</h1><div>${esc(r.start_date ? fmtD(r.start_date, {weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'}) : '')}${r.start_time ? ' · ' + esc(r.start_time) : ''}${r.location ? ' · ' + esc(r.location) : ''}</div></div></div>
       <table><thead><tr><th>✓</th><th>Name</th><th>Phone</th>${types.map(t => `<th class="r">${esc(t.name)}</th>`).join('')}<th class="r">Amount</th><th>Paid</th></tr></thead><tbody>
       ${st.L.map(s => { const amt = types.reduce((a, t) => a + (+((s.tickets || {})[t.id]) || 0) * (+t.price || 0), 0); return `<tr><td>☐</td><td>${esc(s.name)}</td><td>${esc(s.phone || '')}</td>${types.map(t => `<td class="r">${+((s.tickets || {})[t.id]) || ''}</td>`).join('')}<td class="r">${amt ? money(amt) : ''}</td><td>${s.paid ? '✓' : ''}</td></tr>`; }).join('')}
@@ -3796,7 +3796,7 @@ eventCard = function (p) {
   ].filter(Boolean).join('');
   const sup = (p.support_dept_ids || []).map(id => dept(id)).filter(Boolean);
   return `<div class="event-card c2" data-act="openProj" data-id="${esc(p.id)}" style="border-top-color:${c}">
-    <div class="c2h"><span class="type-pill" style="background:${c}1f;color:${c}">${esc(p.event_type || (isEv ? 'Event' : 'Project'))}</span>${pChip(p.status)}${fbOf(p) ? ' <span class="type-pill" style="background:#fdf1dc;color:#7a5200">🍽️ F&amp;B</span>' : ''}${ho ? ` <span class="type-pill" style="background:#e8eef7;color:#1f4f9c">📋 with ${esc(String(p.handoff.to).split(' ')[0])}</span>` : ''}
+    <div class="c2h"><span class="type-pill" style="background:${c}1f;color:${c}">${esc(p.event_type || (isEv ? 'Event' : 'Project'))}</span>${pChip(p.status)}${fbOf(p) ? ' <span class="type-pill" style="background:#f8e7f0;color:#9d2a6c">🍽️ F&amp;B</span>' : ''}${ho ? ` <span class="type-pill" style="background:#e8eef7;color:#1f4f9c">📋 with ${esc(String(p.handoff.to).split(' ')[0])}</span>` : ''}
       <div class="et">${pIcon(p)} ${esc(p.title)}</div></div>
     <div class="c2s">${rows}</div>
     <div class="c2f"><span class="chip" style="background:${c}1a;color:${c}">${esc(d.name || '')}</span>${sup.map(s => `<span class="chip" style="background:${deptColor(s.id)}14;color:${deptColor(s.id)}">+ ${esc(s.id === OFFICE ? 'Office' : s.name)}</span>`).join('')}${vis.some(t => !t.done && isMyTask(t, p)) ? `<span class="chip warn">${vis.filter(t => !t.done && isMyTask(t, p)).length} for you</span>` : ''}</div></div>`;
@@ -4500,19 +4500,19 @@ document.addEventListener('mouseup', e => { const el = e.target; if (el.dataset 
 
 /* ================= p24: boxed sign-up sheets (Name · Phone · Email) + readable minutes ================= */
 const SHEET_CSS = `@page{margin:.5in}body{font-family:"Segoe UI",Helvetica,Arial,sans-serif;margin:0;color:#1a1a1a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.hd{display:flex;gap:14px;align-items:center;border-bottom:3px solid #1a3355;padding-bottom:10px;margin-bottom:14px}.hd img{height:56px}
-h1{margin:0;color:#1a3355;font-size:22px}.sub{color:#444;margin:3px 0 0;font-size:13px}
+.hd{display:flex;gap:14px;align-items:center;border-bottom:3px solid #1B3254;padding-bottom:10px;margin-bottom:14px}.hd img{height:56px}
+h1{margin:0;color:#1B3254;font-size:22px}.sub{color:#444;margin:3px 0 0;font-size:13px}
 .job{break-inside:avoid-page;margin:0 0 14px}
 h2{font-size:15px;margin:14px 0 6px;padding:6px 10px;background:var(--c);color:#fff;border-radius:6px}
 .blk{break-inside:avoid;margin:0 0 12px}
-.t{font-size:13px;color:#1a3355;margin:0 0 4px;font-weight:700;display:flex;gap:10px;align-items:baseline}.t span{font-weight:400;color:#555}
+.t{font-size:13px;color:#1B3254;margin:0 0 4px;font-weight:700;display:flex;gap:10px;align-items:baseline}.t span{font-weight:400;color:#555}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
-th{font-size:10.5px;text-align:left;color:#fff;background:#1a3355;text-transform:uppercase;letter-spacing:.5px;padding:5px 8px;border:1px solid #1a3355}
+th{font-size:10.5px;text-align:left;color:#fff;background:#1B3254;text-transform:uppercase;letter-spacing:.5px;padding:5px 8px;border:1px solid #1B3254}
 td{border:1px solid #8a94a6;height:30px;font-size:13.5px;padding:0 8px;vertical-align:middle}
 tr:nth-child(even) td{background:#f5f7fa}
 td.n,th.n{width:30px;text-align:center;color:#667;padding:0}
 td.ck,th.ck{width:30px;text-align:center;padding:0}
-.r{text-align:right}tfoot td{font-weight:800;background:#e8edf5!important;border-top:2px solid #1a3355}
+.r{text-align:right}tfoot td{font-weight:800;background:#e8edf5!important;border-top:2px solid #1B3254}
 .foot{margin-top:14px;font-size:11px;color:#667}@media screen{body{margin:24px}}`;
 function sheetOpen(title, body) {
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>${SHEET_CSS}</style></head><body>${body}<script>setTimeout(function(){window.print()},300)<\/script></body></html>`;
@@ -5055,7 +5055,7 @@ const EDU_DEPT = 'd-education';
 S.eduSum = {}; S.eduMonth = null;
 function eduDemo() {
   const out = {}; const suns = attSundays().slice(-12);
-  const R = [['kk', "Kid's Korner", '#C8973A', .3], ['cc', "Children's Room", '#2F80ED', .3], ['ss', 'Sunday School', '#1a6e3c', .25], ['yg', 'Youth Group', '#7e3a8a', .15]];
+  const R = [['kk', "Kid's Korner", '#B83280', .3], ['cc', "Children's Room", '#2F80ED', .3], ['ss', 'Sunday School', '#1a6e3c', .25], ['yg', 'Youth Group', '#7e3a8a', .15]];
   const lessons = {kk: ['The lost sheep', 'Thank you, God', 'Jonah and the fish', 'Baby Moses'], cc: ['The Good Samaritan', 'Giving thanks', 'Jesus calms the storm', 'Zacchaeus'], ss: ['Who is my neighbor?', 'Gratitude journal', 'Peace in the storm', 'Saints of faith'], yg: ['Serving our town', 'Stewardship 101', 'Anxiety and prayer', 'All Saints']};
   suns.forEach((d, i) => { const ym = d.slice(0, 7); const kids = (attDay(d) || {}).kids || 0; if (!kids) return; const inClass = Math.max(1, Math.round(kids * (.68 + ((i * 7) % 5) * .05)));
     const m = out[ym] = out[ym] || {month: ym, rooms: R.map(([id, name, color]) => ({id, name, color, sundays: 0, avg: 0, unique: 0, lessons: [], short: 0, _sum: 0})), sundays: [], visitors: 0, issues: {total: 0, open: 0, by_type: {}}, supervision_short: 0, clearances_due: 2, sample: true};
@@ -5531,7 +5531,7 @@ function updEnhance(ta) {
   updPreview(ta);
 }
 function updScan(root) { (root || document).querySelectorAll(UPD_SEL).forEach(updEnhance); const ta = document.getElementById('du_text'); if (ta) { const card = ta.closest('.card'); if (card && !card.classList.contains('upd-hero')) { card.classList.add('upd-hero'); const btns = card.querySelectorAll('[data-act="draftPlans"],[data-act="draftTrk"],[data-act="eduDraft"],[data-act="petDraft"],[data-act="iaDraft"]'); const vis = [...btns].filter(b => b.style.display !== 'none');
-      const lab = ta.closest('label'); if (lab && vis.length) { const tip = document.createElement('div'); tip.className = 'upd-steps'; tip.innerHTML = '<b>1</b> Start from what’s already in delcBOARD and the other DELC apps (gold buttons above) — no retyping. <b>2</b> Edit and format below. <b>3</b> Send for review.'; lab.parentNode.insertBefore(tip, lab); }
+      const lab = ta.closest('label'); if (lab && vis.length) { const tip = document.createElement('div'); tip.className = 'upd-steps'; tip.innerHTML = '<b>1</b> Start from what’s already in delcBOARD and the other DELC apps (the buttons above) — no retyping. <b>2</b> Edit and format below. <b>3</b> Send for review.'; lab.parentNode.insertBefore(tip, lab); }
       else if (lab) { const tip = document.createElement('div'); tip.className = 'upd-steps'; tip.innerHTML = '<b>1</b> Write each point on its own line — use the buttons or Tab for sub-points. <b>2</b> Check the preview. <b>3</b> Send for review.'; lab.parentNode.insertBefore(tip, lab); }
       const t = lab && lab.firstChild; if (t && t.nodeType === 3) t.textContent = 'Your update — one point per line'; } } }
 new MutationObserver(ms => { for (const m of ms) if (m.addedNodes.length) { updScan(); break; } }).observe(document.documentElement, {childList: true, subtree: true});
@@ -5561,8 +5561,8 @@ li.ul1{margin-left:22px!important;list-style-type:circle}li.ul2{margin-left:44px
 .upbar{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:6px 0 4px}.upb{border:1px solid var(--line,#d6dbe3);background:#fff;border-radius:7px;padding:4px 10px;font:inherit;font-size:13px;font-weight:700;color:var(--navy,#1B3254);cursor:pointer;min-height:32px}.upb:hover{background:#eef3fa}.uphint{font-size:11.5px;color:var(--muted,#6b7280);margin-left:4px}
 .upd-ta{font-family:inherit;tab-size:4;-moz-tab-size:4;line-height:1.45}
 .upv{border:1px dashed var(--line,#d6dbe3);border-radius:10px;padding:6px 12px 8px;margin-top:6px;background:#fafbfd;font-size:14px}.upv-h{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted,#6b7280);margin-bottom:2px}
-.card.upd-hero{border:2px solid var(--gold,#C8973A);box-shadow:0 2px 10px rgba(200,151,58,.15)}.upd-steps{font-size:12.5px;color:#4b5563;background:#fdf7ec;border-radius:8px;padding:7px 10px;margin:8px 0 6px;line-height:1.5}.upd-steps b{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--gold,#C8973A);color:#fff;font-size:11px;margin:0 3px 0 6px}.upd-steps b:first-child{margin-left:0}
-.updbanner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-radius:12px;padding:12px 14px;margin-top:14px;border:2px solid var(--gold,#C8973A);background:#fdf7ec}.updbanner .ub-ic{font-size:22px}.updbanner .ub-t{flex:1;min-width:200px;font-size:14.5px}
+.card.upd-hero{border:2px solid var(--gold,#1B3254);box-shadow:0 2px 10px rgba(27,50,84,.12)}.upd-steps{font-size:12.5px;color:#4b5563;background:#eef3fa;border-radius:8px;padding:7px 10px;margin:8px 0 6px;line-height:1.5}.upd-steps b{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--gold,#1B3254);color:#fff;font-size:11px;margin:0 3px 0 6px}.upd-steps b:first-child{margin-left:0}
+.updbanner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-radius:12px;padding:12px 14px;margin-top:14px;border:2px solid var(--gold,#1B3254);background:#eef3fa}.updbanner .ub-ic{font-size:22px}.updbanner .ub-t{flex:1;min-width:200px;font-size:14.5px}
 .updbanner.ub-bad{border-color:var(--bad,#b42318);background:#fdecea}.updbanner.ub-ok{border-color:var(--ok,#2e7d32);background:#eef7ee}.updbanner.ub-wait{border-color:#94a3b8;background:#f4f6f9}
 .updhome{margin:6px 0 10px}.updhome>b{font-size:13px;color:var(--navy,#1B3254)}.updhome .updbanner{margin-top:4px}
 @media print{.upbar,.upv,.updbanner,.upd-steps{display:none!important}}`; document.head.appendChild(st); })();
@@ -5653,7 +5653,7 @@ Object.assign(ACT, {
 .tl32 input.tp_short{font-weight:700}
 .tl32 .mv{display:flex;flex-direction:column;gap:2px}
 .tl32 .mv button{border:0;background:none;color:var(--muted,#64748b);cursor:pointer;font-size:12px;line-height:1;padding:1px 4px}
-.tl32-card{border-left:4px solid var(--gold,#C8973A)}
+.tl32-card{border-left:4px solid var(--gold,#1B3254)}
 @media (max-width:760px){.tl32 .g{grid-template-columns:1fr 30px}.tl32 .g>.tp_text{grid-column:1 / span 2}.tl32 .g2{grid-template-columns:1fr 1fr}}
 </style>`);
 
