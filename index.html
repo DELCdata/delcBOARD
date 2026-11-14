@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://delcdata.github.io/DELCAppsHub/delc-kit.js?v=2"></script>
 <title>delcBOARD</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://delcdata.github.io/DELCAppsHub/shared-auth.js?v=3"></script>
@@ -182,6 +183,10 @@ table.tb td{padding:8px;border-bottom:1px solid #f0f0f2;vertical-align:top}
   .mtg{display:block}
   h2{break-after:avoid}.ai,.dp{break-inside:avoid}
 }
+
+/* shared header buttons (2026-11-14) — same look in every delcAPP; delc-kit.js carries the full rule, this is the fallback */
+.delc-hbtn{background:rgba(255,255,255,.12);border:0;color:#fff;border-radius:8px;padding:5px 11px;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap;cursor:pointer}.delc-hbtn.pri{background:#fff;color:#1B3254}
+.brand .wm,.nav-title .wm{font-size:19px!important;font-family:var(--delc-display,inherit)}
 </style>
 </head>
 <body>
@@ -499,9 +504,9 @@ function header() {
   return `${S.backend === 'local' ? `<div class="demo-banner">Demo mode — data is saved on this device only. &nbsp;View as: ${[['admin','Admin'],['member','Council member'],['director','Department director']].map(([k, l]) => `<button class="link" data-act="demoRole" data-v="${k}" style="${S.demoRole === k ? 'font-weight:800;text-decoration:underline' : ''}">${l}</button>`).join(' · ')}</div>` : ''}
   <header class="top"><div class="brand"><span class="wm">delc<b>BOARD</b></span></div><div class="spacer"></div>
     <span class="saving" id="saving"></span>
-    ${r === 'director' ? '' : `<button class="tbtn" data-act="newMeeting" style="background:var(--gold);border-color:var(--gold);color:var(--navy);font-weight:700">+ Meeting</button>`}
+    ${r === 'director' ? '' : `<button class="tbtn delc-hbtn pri" data-act="newMeeting">+ Meeting</button>`}
     <span class="chip gray" style="background:rgba(255,255,255,.14);color:#fff">${esc(ROLES[r] ? ROLES[r].short : '')}</span>
-    <span class="small uname" style="opacity:.85">${esc(S.userName || S.user)}</span><a class="tbtn" href="${CONFIG.hubUrl}">Apps</a><button class="tbtn" data-act="logout">Sign out</button></header>
+    <span class="small uname" style="opacity:.85">${esc(S.userName || S.user)}</span><a class="tbtn delc-hbtn" href="${CONFIG.hubUrl}">Apps</a><button class="tbtn delc-hbtn" data-act="logout">Sign out</button></header>
   <nav class="tabs">${tabs.map(([k, l, n]) => `<button class="tab ${S.view === k && !S.meetingId ? 'on' : ''}" data-act="tab" data-v="${k}">${l}${n ? `<span class="n">${n}</span>` : ''}</button>`).join('')}</nav>`;
 }
 function bodyFilter() {
@@ -1873,9 +1878,9 @@ function header() {
   <header class="top-nav"><img src="${LOGO_SQ}" alt="DELC"><div class="nav-div"></div>
     <div class="nav-title"><span class="wm">delc<b>BOARD</b></span><small>${esc(S.userName || S.user)} · ${esc(ROLES[r] ? ROLES[r].short : '')}${canCoordinate() && r !== 'admin' ? ' · Coordinator' : ''}${r === 'admin' && myMember() && myMember().coordinator ? ' · Coordinator' : ''}</small></div>
     <span class="saving" id="saving"></span>
-    ${canCoordinate() ? `<button class="nav-btn gold" data-act="newEvent">+ Event</button>` : ''}
-    ${r === 'director' ? '' : `<button class="nav-btn nav-mtg" data-act="newMeeting">+ Meeting</button>`}
-    <a class="nav-btn" href="${CONFIG.hubUrl}">Apps</a><button class="nav-btn" data-act="logout">Sign out</button></header>
+    ${canCoordinate() ? `<button class="nav-btn delc-hbtn pri" data-act="newEvent">+ Event</button>` : ''}
+    ${r === 'director' ? '' : `<button class="nav-btn nav-mtg delc-hbtn" data-act="newMeeting">+ Meeting</button>`}
+    <a class="nav-btn delc-hbtn" href="${CONFIG.hubUrl}">Apps</a><button class="nav-btn delc-hbtn" data-act="logout">Sign out</button></header>
   <div class="hero"><div class="hero-label">Duncansville Evangelical Lutheran Church</div><div class="hero-title">${esc(title)}</div>
     <nav class="tab-bar">${tabs.map(t => `<button class="htab ${isOn(t) ? 'on' : ''}" data-act="tab" data-v="${t[0]}">${t[1]}${t[2] ? `<span class="n">${t[2]}</span>` : ''}</button>`).join('')}</nav></div>`;
 }
