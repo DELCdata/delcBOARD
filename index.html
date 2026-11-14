@@ -10,7 +10,7 @@
 <style>
 :root{
   --navy:#1B3254; --navy2:#26446f; --gold:#1B3254; --delc-green:#84c225; --gold2:#e6ecf5;
-  --bg:#eef1f6; --card:#fff; --ink:#1d2433; --muted:#6b7280; --line:#e5e7eb; --soft:#fafafa;
+  --bg:#eef1f6; --card:#fff; --ink:#1d2433; --muted:#5d6a82; --line:#e5e7eb; --soft:#fafafa;
   --ok:#1E7F45; --okbg:#E6F4EA; --warn:#A15C00; --warnbg:#FDF1DC; --bad:#C0362C; --badbg:#FBEAE8; --info:#1f4f9c; --infobg:#E8EEFB;
 }
 *{box-sizing:border-box}
@@ -220,6 +220,11 @@ table.tb td{padding:8px;border-bottom:1px solid #f0f0f2;vertical-align:top}
 .hero-head .hero-title{color:#1B3254!important;margin-bottom:0!important}
 @media(max-width:560px){.top-nav .uname{display:none}.hero-head{padding:12px 12px 2px}}
 </style>
+<style id="readable-2026-11-14">/* easier reading (2026-11-14): nothing under 12px, darker faint text */
+html body :is(.dow,.ec-stat-label,.metric-label,.more,.type-pill,.hero-label,.ev,.n,.chip){font-size:12px!important}
+html body small{font-size:12px!important}
+html body .mcell .ev{font-size:12px;line-height:1.35}
+</style>
 </head>
 <body>
 <div id="app"></div>
@@ -236,7 +241,6 @@ const CONFIG = {
   url: 'https://ksdxhqyusaylfpyeecbv.supabase.co',
   key: 'sb_publishable_2LJBKHTG1fXcMzWWHf1Mrg_EsrC4_JC',
   fnKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZHhocXl1c2F5bGZweWVlY2J2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NTE1NDgsImV4cCI6MjEwNDEyNzU0OH0.6HI0XWmlIfzyVy0iRH2GkAVNqYIZQwMeNhr4drTOUNo',
-  password: 'Delc.1200!',
   appKey: 'board',
   hubUrl: 'https://delcdata.github.io/DELCAppsHub/',
   bucket: 'board-docs',
@@ -880,7 +884,7 @@ const ACT = {
       if (!res || !res.ok) { err((res && res.error) || 'That username or password isn’t right.'); return; }
       session = res.session || DelcAuth.getSession();
       if (!DelcAuth.hasAppAccess(session, CONFIG.appKey)) { err('Your account doesn’t have access to delcBOARD yet. Ask an admin to turn it on in the Admin Portal.'); return; }
-    } else if (pw !== CONFIG.password) { err('The login service is unreachable and that isn’t the fallback password.'); return; }
+    } else { err('The DELC Apps login service can’t be reached right now. Check the internet connection and try again in a minute.'); return; }
     signIn(session, u); boot();
   },
   demo() { S.user = 'demo'; S.userName = 'Demo'; S.backend = 'local'; lsSet('board_user', 'demo'); lsSet('board_backend', 'local'); boot(); },
@@ -1836,7 +1840,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue"
 .mcal .dow{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);padding:6px;text-align:center;border-bottom:1px solid var(--line);background:var(--cream)}
 .mcell{min-height:104px;border-right:1px solid #ECECEF;border-bottom:1px solid #ECECEF;padding:4px;cursor:pointer;min-width:0}
 .mcell:nth-child(7n){border-right:0}
-.mcell.out{background:#F7F7FA}.mcell.out .dn{color:#b0b0b8}
+.mcell.out{background:#F7F7FA}.mcell.out .dn{color:#6b7080}
 .mcell.sel{outline:2px solid var(--gold);outline-offset:-2px}
 .mcell .dn{font-size:12px;font-weight:700;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:50%}
 .mcell.today .dn{background:var(--gold);color:#fff}
