@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<script src="https://delcdata.github.io/DELCAppsHub/delc-kit.js?v=3"></script>
+<script src="https://delcdata.github.io/DELCAppsHub/delc-kit.js?v=4"></script>
 <title>delcBOARD</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://delcdata.github.io/DELCAppsHub/shared-auth.js?v=3"></script>
 <style>
 :root{
   --navy:#1B3254; --navy2:#26446f; --gold:#1B3254; --delc-green:#84c225; --gold2:#e6ecf5;
-  --bg:#F5F5F7; --card:#fff; --ink:#1d2433; --muted:#6b7280; --line:#e5e7eb; --soft:#fafafa;
+  --bg:#eef1f6; --card:#fff; --ink:#1d2433; --muted:#6b7280; --line:#e5e7eb; --soft:#fafafa;
   --ok:#1E7F45; --okbg:#E6F4EA; --warn:#A15C00; --warnbg:#FDF1DC; --bad:#C0362C; --badbg:#FBEAE8; --info:#1f4f9c; --infobg:#E8EEFB;
 }
 *{box-sizing:border-box}
@@ -187,6 +187,38 @@ table.tb td{padding:8px;border-bottom:1px solid #f0f0f2;vertical-align:top}
 /* shared header buttons (2026-11-14) — same look in every delcAPP; delc-kit.js carries the full rule, this is the fallback */
 .delc-hbtn{background:rgba(255,255,255,.12);border:0;color:#fff;border-radius:8px;padding:5px 11px;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap;cursor:pointer}.delc-hbtn.pri{background:#fff;color:#1B3254}
 .brand .wm,.nav-title .wm{font-size:19px!important;font-family:var(--delc-display,inherit)}
+.delc-signin-card .btn.pri{width:100%;justify-content:center;padding:12px!important;font-size:15px!important}
+
+/* one sign-in card in every delcAPP (2026-11-14) */
+.delc-signin-card{max-width:400px!important;width:100%;border-radius:16px!important;padding:28px 26px!important;box-shadow:0 8px 30px rgba(27,50,84,.08)!important;text-align:left}
+.delc-signin-top{text-align:center;margin-bottom:12px}
+.delc-signin-top .delc-logo{display:block;width:220px;max-width:85%;height:auto;margin:0 auto 12px}
+.delc-signin-top .wm,.delc-signin-top .delc-wm{font-size:20px!important;margin:0!important}
+.delc-signin-top h1{font-family:var(--delc-display,inherit);font-size:26px!important;font-weight:800;margin:12px 0 4px!important;letter-spacing:-.01em;text-align:center}
+.delc-signin-top .sub{font-size:13.5px;line-height:1.45;color:#5d6a82}
+.delc-signin-top .sub b{display:block;font-weight:600;color:#33415a;margin-bottom:2px}
+.delc-signin-links{display:flex;flex-direction:column;align-items:center;gap:9px;margin-top:16px;padding-top:14px;border-top:1px solid #e3e8f0}
+.delc-signin-links a,.delc-signin-links button{font:inherit;font-size:13px!important;font-weight:700;color:#1B3254;background:none;border:0;padding:0;text-decoration:underline;text-underline-offset:2px;cursor:pointer;text-align:center}
+.delc-signin-links .sec{font-weight:500;color:#5d6a82}
+
+/* tab standard: delcPEOPLE underline tabs */
+.tabs{border-top:1px solid #2c4870;padding:0 12px!important;gap:2px!important}
+.tabs .tab{background:none!important;border:0!important;border-bottom:3px solid transparent!important;border-radius:0!important;box-shadow:none!important;color:#c3cfe2!important;padding:10px 14px!important;font-size:14px!important;font-weight:600!important;font-family:inherit!important;line-height:1.3!important;white-space:nowrap;cursor:pointer;flex:0 0 auto!important;min-height:0!important}
+.tabs .tab.on{color:#fff!important;border-bottom-color:#fff!important;background:none!important}
+.tabs .tab:not(.on):hover{color:#fff!important;background:none!important}
+.tab-bar{gap:2px}
+.htab{background:none!important;border:0!important;border-bottom:3px solid transparent!important;border-radius:0!important;box-shadow:none!important;color:#c3cfe2!important;padding:10px 14px!important;font-size:14px!important;font-weight:600!important;font-family:inherit!important;line-height:1.3!important;white-space:nowrap;cursor:pointer;flex:0 0 auto!important;min-height:0!important}
+.htab.on{color:#fff!important;border-bottom-color:#fff!important;background:none!important}
+.htab:not(.on):hover{color:#fff!important;background:none!important}
+/* delcBOARD header matches the other apps: wordmark left; name, Apps, Sign out right; tabs right under the bar; page title on the light background */
+.top-nav .saving{color:rgba(255,255,255,.75)!important}
+.top-nav .uname{color:#fff;opacity:.85;font-size:13px;white-space:nowrap}
+.hero{background:none!important;padding:0!important}
+.hero .tab-bar{background:#1B3254;border-top:1px solid #2c4870;padding:0 12px;margin:0}
+.hero-head{padding:16px 20px 4px}
+.hero-head .hero-label{color:#5d6a82!important}
+.hero-head .hero-title{color:#1B3254!important;margin-bottom:0!important}
+@media(max-width:560px){.top-nav .uname{display:none}.hero-head{padding:12px 12px 2px}}
 </style>
 </head>
 <body>
@@ -484,18 +516,12 @@ function docText(m, kind) { const div = document.createElement('div'); div.inner
 
 /* ---------------- views ---------------- */
 function viewLogin(err='') {
-  return `<div class="center"><div class="card login stack">
-    <img src="${LOGO}" alt="DELC" style="width:230px;max-width:100%;margin:0 auto 4px;display:block"><div class="brand" style="justify-content:center;font-size:20px"><span class="wm pill">delc<b>BOARD</b></span></div>
-    <h1>Sign in</h1><div class="muted small">Use your DELC Apps account — the same username and password as the DELC Apps Hub.</div>
-    <label class="f">Username<input id="lu" autocomplete="username" autocapitalize="none" placeholder="ddetrich"></label>
+  return `<div class="center"><div class="card login stack delc-signin-card"> <div class="delc-signin-top">${window.DELC?DELC.logoImg():`<img class="delc-logo" src="${LOGO}" alt="DELC">`}<span class="wm pill">delc<b>BOARD</b></span><h1>Sign in</h1><div class="sub"><b>Council and committee agendas, minutes and plans</b>Use your DELC Apps account — the same username (or email) and password as the DELC Apps Hub.</div></div>
+    <label class="f">Username or email<input id="lu" autocomplete="username" autocapitalize="none" placeholder="e.g. ddetrich"></label>
     <label class="f">Password<input id="lp" type="password" autocomplete="current-password"></label>
     <div class="err" id="lerr">${esc(err || (!window.supabase ? 'Could not load the database library — check the internet connection.' : ''))}</div>
     <button class="btn pri" data-act="login">Sign in</button>
-    <a class="link" href="?public">View approved minutes (public)</a>
-    <a class="link" href="?update">Submit a department update</a>
-    <a class="link" href="${CONFIG.hubUrl}">Go to the DELC Apps Hub</a>
-    <button class="link" data-act="demo">Try it in offline demo mode (data stays on this device)</button>
-  </div></div>`;
+    <div class="delc-signin-links"><a href="${CONFIG.hubUrl}">DELC Apps Hub</a><a href="?public">View approved minutes (public)</a><a href="?update">Submit a department update</a><button class="sec" data-act="demo">Try the offline demo (data stays on this device)</button></div> </div></div>`;
 }
 function header() {
   const nIn = S.inbox.filter(x => x.status === 'pending').length; const nAct = S.actions.filter(a => a.status !== 'done').length;
@@ -1757,7 +1783,7 @@ ROLES.admin.desc = 'everything: reviews department updates, creates church event
 (function () {
   document.head.insertAdjacentHTML('beforeend', `<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
 <style id="fbstyle">
-:root{--navy:#1B3254;--navyD:#14273F;--gold:#1B3254;--bg:#F2F2F7;--line:#e3e3e8;--muted:#6b6b72;--cream:#F7F7FA;--soft:#F7F7FA;--blue:#3466B0}
+:root{--navy:#1B3254;--navyD:#14273F;--gold:#1B3254;--bg:#eef1f6;--line:#e3e3e8;--muted:#6b6b72;--cream:#F7F7FA;--soft:#F7F7FA;--blue:#3466B0}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Segoe UI",Lato,system-ui,sans-serif;background:var(--bg);color:#1C1C1E;-webkit-font-smoothing:antialiased}
 .card{border-radius:14px;border-color:var(--line);box-shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04)}
 .item,.ai,.mhead2,.calrow{border-color:var(--line)}
@@ -1875,16 +1901,12 @@ function header() {
   const isOn = t => t[3] ? t[3].includes(v) : v === t[0];
   const title = S.meetingId ? ((mtg(S.meetingId) || {}).title || 'Meeting') : (r === 'director' && v === 'depts' ? (myDepts().length === 1 ? myDepts()[0].name : 'My departments') : VIEW_TITLES[v] || '');
   return `${S.backend === 'local' ? `<div class="demo-banner">Demo mode — data is saved on this device only. &nbsp;View as: ${[['admin','Admin'],['member','Council member'],['coord','Event coordinator'],['director','Department director']].map(([k, l]) => `<button class="link" data-act="demoRole" data-v="${k}" style="${S.demoRole === k || (!S.demoRole && k === 'admin') ? 'font-weight:800;text-decoration:underline' : ''}">${l}</button>`).join(' · ')}</div>` : ''}
-  <header class="top-nav"><img src="${LOGO_SQ}" alt="DELC"><div class="nav-div"></div>
-    <div class="nav-title"><span class="wm">delc<b>BOARD</b></span><small>${esc(S.userName || S.user)} · ${esc(ROLES[r] ? ROLES[r].short : '')}${canCoordinate() && r !== 'admin' ? ' · Coordinator' : ''}${r === 'admin' && myMember() && myMember().coordinator ? ' · Coordinator' : ''}</small></div>
+  <header class="top-nav"><div class="nav-title"><span class="wm">delc<b>BOARD</b></span></div>
     <span class="saving" id="saving"></span>
     ${canCoordinate() ? `<button class="nav-btn delc-hbtn pri" data-act="newEvent">+ Event</button>` : ''}
     ${r === 'director' ? '' : `<button class="nav-btn nav-mtg delc-hbtn" data-act="newMeeting">+ Meeting</button>`}
-    <a class="nav-btn delc-hbtn" href="${CONFIG.hubUrl}">Apps</a><button class="nav-btn delc-hbtn" data-act="logout">Sign out</button></header>
-  <div class="hero"><div class="hero-label">Duncansville Evangelical Lutheran Church</div><div class="hero-title">${esc(title)}</div>
-    <nav class="tab-bar">${tabs.map(t => `<button class="htab ${isOn(t) ? 'on' : ''}" data-act="tab" data-v="${t[0]}">${t[1]}${t[2] ? `<span class="n">${t[2]}</span>` : ''}</button>`).join('')}</nav></div>`;
-}
-function subTabs(list) {
+    <span class="uname">${esc(S.userName || S.user)} · ${esc(ROLES[r] ? ROLES[r].short : '')}${canCoordinate() && r !== 'admin' ? ' · Coordinator' : ''}${r === 'admin' && myMember() && myMember().coordinator ? ' · Coordinator' : ''}</span><a class="nav-btn delc-hbtn" href="${CONFIG.hubUrl}">Apps</a><button class="nav-btn delc-hbtn" data-act="logout">Sign out</button></header>
+  <div class="hero"><nav class="tab-bar">${tabs.map(t => `<button class="htab ${isOn(t) ? 'on' : ''}" data-act="tab" data-v="${t[0]}">${t[1]}${t[2] ? `<span class="n">${t[2]}</span>` : ''}</button>`).join('')}</nav><div class="hero-head"><div class="hero-label">Duncansville Evangelical Lutheran Church</div><div class="hero-title">${esc(title)}</div></div></div>`; } function subTabs(list) {
   return `<div class="sub-tab-bar">${list.map(([k, l, n]) => `<button class="sub-tab ${S.view === k ? 'on' : ''}" data-act="tab" data-v="${k}">${l}${n ? `<span class="n">${n}</span>` : ''}</button>`).join('')}</div>`;
 }
 const withSub = (html, sub) => html.replace('<div class="page">', '<div class="page">' + sub);
