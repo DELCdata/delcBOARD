@@ -1965,7 +1965,7 @@ function calItems(from, to, scope) {
   const ord = {meeting: 0, event: 1, edu: 1, fb: 2, project: 3, task: 4};
   return out.sort((a, b) => String(a.date).localeCompare(String(b.date)) || ord[a.kind] - ord[b.kind]);
 }
-const itemAct = it => it.kind === 'edu' ? `data-act="eduClassOpen" data-id="${esc(it.c.id)}" data-d="${it.date}"` : it.kind === 'meeting' ? `data-act="openMeeting" data-id="${esc(it.m.id)}"` : it.kind === 'fb' ? `data-act="openFb"` : `data-act="openProj" data-id="${esc(it.p.id)}"`;
+const itemAct = it => (it.kind === 'req' || it.kind === 'reqs') ? `data-act="dreqOpen" data-id="${esc(it.p.id)}" data-req="${it.kind}"` : it.kind === 'edu' ? `data-act="eduClassOpen" data-id="${esc(it.c.id)}" data-d="${it.date}"` : it.kind === 'meeting' ? `data-act="openMeeting" data-id="${esc(it.m.id)}"` : it.kind === 'fb' ? `data-act="openFb"` : `data-act="openProj" data-id="${esc(it.p.id)}"`;
 
 /* ---------- event card (F&B look) ---------- */
 function eventCard(p) {
@@ -6011,6 +6011,394 @@ viewDept = function (d) { let h = _viewDept36(d); const own = ownDepts(); if (ow
 const _trkField36 = trkField;
 trkField = function (a, r, f, dis) { let h = _trkField36(a, r, f, dis); if (a.key === 'wilt' && f.type === 'files') h = h.replace('<div class="tiny" style="color:var(--warn)">No transcript uploaded yet.</div>', '<div class="tiny muted">Optional — upload a transcript or grade report if you have one. Checking the C-average box is what counts.</div>'); return h; };
 (function () { const W = trkArea('d-resources', 'wilt'); if (!W) return; const f = W.fields.find(x => x.k === 'transcript'); if (f) f.label = 'Transcript / grade report (optional)'; })();
+
+/* ================= p37: date requests → department approval → draft event; section hand-offs (2026-11-23) =================
+   The Office sends a date request (name, date, time, place, lead + supporting departments). It sits on the calendar as
+   "⏳ Pending" until each of those departments' directors approves it or suggests another date. When everyone approves,
+   it becomes a draft event the Office finishes in the event wizard. From the wizard the Office can send any page
+   ("section") to a department to fill in or review; the director sees only that page, then sends it back.
+   Data: a request is a board_projects row with status 'request' and a date_request jsonb. Hand-offs live in the draft's
+   wizard state (wizard.handoffs). No personal names on buttons: the requester is "the Office". */
+S.requests = [];
+[Local, Remote].forEach(Bk => { const _la = Bk.loadAll; Bk.loadAll = async function () { const d = await _la.apply(this, arguments);
+  if (d && Array.isArray(d.projects)) { S.requests = d.projects.filter(p => p.status === 'request'); d.projects = d.projects.filter(p => p.status !== 'request'); } return d; }; });
+
+const DR_FMT = {weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'};
+const drT = v => /^\d{1,2}:\d{2}$/.test(String(v || '')) ? to12(v) : String(v || '');
+const drTimes = (a, b) => a ? drT(a) + (b ? '–' + drT(b) : '') : '';
+const drOf = p => p.date_request || {};
+const drResp = p => drOf(p).responses || {};
+const drDepts = p => [p.department_id, ...(p.support_dept_ids || [])].filter((x, i, a) => x && a.indexOf(x) === i && x !== OFFICE);
+const drRole = (p, id) => id === p.department_id ? 'lead' : 'supporting';
+const drSt = (p, id) => (drResp(p)[id] || {}).status || 'pending';
+const drAllOk = p => { const L = drDepts(p); return L.length > 0 && L.every(id => drSt(p, id) === 'approved'); };
+const drNewDates = p => drDepts(p).filter(id => drSt(p, id) === 'new_date');
+const drCount = p => { const L = drDepts(p); return `${L.filter(id => drSt(p, id) === 'approved').length} of ${L.length} approved`; };
+const dname = id => (dept(id) || {}).name || 'Department';
+/* departments whose director I am (an admin in demo mode answers for all) */
+function myApproveDepts() { const m = myMember(); const mid = m && m.id;
+  return S.departments.filter(d => d.active !== false && d.id !== OFFICE && ((mid && (d.director_ids || []).includes(mid)) || (S.backend === 'local' && isAdmin()))); }
+const myApproveSet = () => new Set(myApproveDepts().map(d => d.id));
+function dreqForMe() { const mine = myApproveSet(); return S.requests.filter(p => drDepts(p).some(id => mine.has(id) && drSt(p, id) === 'pending')); }
+function dreqMyCount() { const mine = myApproveSet(); return S.requests.reduce((s, p) => s + drDepts(p).filter(id => mine.has(id) && drSt(p, id) === 'pending').length, 0); }
+/* hand-offs */
+const HO_MODE = {fill: 'Fill in', review: 'Review'};
+const HO_ST = {open: 'with', done: 'done by', ok: 'looked over by', changes: 'needs changes —'};
+const stepName = (r, k) => { const s = wzSteps(r || {kind: 'event'}).find(x => x[0] === k); return s ? s[1] + ' ' + s[2] : k; };
+const draftHos = x => ((x.wizard || {}).handoffs || []);
+function hoForMe() { const mine = myApproveSet(); const out = []; S.drafts.forEach(x => draftHos(x).forEach(h => { if (h.status === 'open' && mine.has(h.dept_id)) out.push({x, h}); })); return out; }
+function hoSentOut() { const out = []; S.drafts.forEach(x => draftHos(x).forEach(h => { if (h.status === 'open' || !h.seen) out.push({x, h}); })); return out; }
+
+/* ---------- what's on that day (conflicts) ---------- */
+function drConflicts(date, loc, selfId) {
+  if (!date) return [];
+  const same = a => loc && a && String(a).trim().toLowerCase() === String(loc).trim().toLowerCase();
+  return calItems(date, date, 'all').filter(it => it.kind !== 'task' && it.kind !== 'reqs' && !(it.p && it.p.id === selfId)).map(it => {
+    const where = it.kind === 'meeting' ? it.m.location : it.p ? it.p.location : '';
+    const when = it.kind === 'meeting' ? it.m.start_time : it.kind === 'req' ? drTimes(drOf(it.p).t1, drOf(it.p).t2) : it.p ? drTimes(it.p.start_time, it.p.end_time) : '';
+    return {title: String(it.title || '').replace(/^⏳ /, ''), where: where || '', when: when || '', pending: it.kind === 'req', clash: same(where)};
+  });
+}
+function drConfHtml(date, loc, selfId) {
+  if (!date) return '<div class="tiny muted">Pick a date to see what else is on the calendar.</div>';
+  const L = drConflicts(date, loc, selfId);
+  if (!L.length) return `<div class="dr-free">✓ Nothing else on ${esc(fmtD(date, DR_FMT))}</div>`;
+  return L.map(c => `<div class="dr-conf ${c.clash ? 'clash' : ''}"><b>${esc(c.when || 'All day')}</b><span>${esc(c.title)}${c.where ? ' · <b>' + esc(c.where) + '</b>' : ''}${c.pending ? ' · ⏳ pending' : ''}${c.clash ? ' — same place' : ''}</span></div>`).join('');
+}
+
+/* ---------- the Office: new date request ---------- */
+const DR_LOCS = ['Nave', 'Chapel', 'Social Hall', 'FLC', 'FLC Board', 'Parlor', 'Youth Room', 'JAM Room'];
+function mDreq(r) {
+  const D = S.departments.filter(d => d.active !== false && d.id !== OFFICE).sort((a, b) => (a.sort || 0) - (b.sort || 0));
+  const lead = dept(r.department_id); const dir = lead ? (lead.director_ids || []).map(id => (mem(id) || {}).name).filter(Boolean).join(', ') || lead.leader || '' : '';
+  return `<div class="mhead"><div><h2>📅 New date request</h2><div class="small muted">Hold a date and ask the departments involved to OK it. Once they all approve, it becomes a draft event to finish in the event wizard.</div></div><button class="x" data-act="closeModal">×</button></div>
+    <div class="dr-grid"><div>
+      <label class="f">Event name<input id="dr_title" value="${esc(r.title || '')}"></label>
+      <div class="grid2"><label class="f">Date<input type="date" id="dr_date" data-drc="1" value="${esc(r.start_date || '')}"></label>
+        <label class="f">Where (optional)<input id="dr_loc" data-drc="1" list="ne_locs" value="${esc(r.location || '')}"><datalist id="ne_locs">${DR_LOCS.map(x => `<option value="${esc(x)}">`).join('')}</datalist></label></div>
+      <div class="grid2"><label class="f">Starts<input type="time" id="dr_t1" value="${esc(r.t1 || '')}"></label><label class="f">Ends<input type="time" id="dr_t2" value="${esc(r.t2 || '')}"></label></div>
+      <label class="f">Lead department<select id="dr_lead"><option value="">— Pick —</option>${D.map(d => `<option value="${d.id}" ${d.id === r.department_id ? 'selected' : ''}>${esc(d.name)}</option>`).join('')}</select></label>
+      ${lead ? `<div class="tiny muted" style="margin:-6px 0 10px">Director: ${esc(dir || '—')} · approves the date</div>` : ''}
+      <div class="lbl" style="font-size:12px;font-weight:700;color:var(--muted);margin:4px 0 6px">Supporting departments (optional) — they also OK the date</div>
+      <div class="dr-sups">${D.filter(d => d.id !== r.department_id).map(d => `<label class="dr-sup ${(r.support_dept_ids || []).includes(d.id) ? 'on' : ''}"><input type="checkbox" class="dr_sup" value="${d.id}" ${(r.support_dept_ids || []).includes(d.id) ? 'checked' : ''}> ${esc(d.name)}</label>`).join('')}</div>
+      <div class="tiny muted" style="margin-top:4px">These carry into the event as its lead and supporting departments.</div>
+      <label class="f" style="margin-top:10px">Note to the directors (optional)<textarea id="dr_note" rows="2">${esc(r.note || '')}</textarea></label>
+    </div><div>
+      <div class="dr-side"><div class="hsec" style="margin-top:0">Already on that day</div><div id="dr_conf">${drConfHtml(r.start_date, r.location, r.id)}</div></div>
+      <div class="dr-next"><b>What happens next</b><ol><li>The date shows on the calendar as ⏳ Pending.</li><li>The lead and supporting directors each approve it or suggest another date.</li><li>When everyone approves, it becomes a draft event for the Office to finish.</li></ol></div>
+    </div></div>
+    <div class="row" style="justify-content:flex-end;gap:8px;margin-top:12px"><button class="btn" data-act="closeModal">Cancel</button><button class="btn pri" data-act="dreqSend">${r.id ? 'Save & ask again →' : 'Send for approval →'}</button></div>`;
+}
+function drGrab() { const r = S.modal.row; const v = id => ($('#' + id) || {}).value;
+  if ($('#dr_title')) { r.title = String(v('dr_title') || '').trim(); r.start_date = v('dr_date') || null; r.location = String(v('dr_loc') || '').trim(); r.t1 = v('dr_t1') || ''; r.t2 = v('dr_t2') || ''; r.department_id = v('dr_lead') || null; r.note = String(v('dr_note') || '').trim();
+    r.support_dept_ids = $$('.dr_sup:checked').map(c => c.value).filter(id => id !== r.department_id); }
+  return r; }
+document.addEventListener('change', e => { if (!S.modal || S.modal.type !== 'dreq' || !e.target) return;
+  if (e.target.id === 'dr_lead' || e.target.classList.contains('dr_sup')) { drGrab(); renderModal(); return; }
+  if (e.target.dataset && e.target.dataset.drc) { const r = drGrab(); const c = $('#dr_conf'); if (c) c.innerHTML = drConfHtml(r.start_date, r.location, r.id); } });
+
+async function drSave(p) { const saved = await B.upsert('projects', p); const row = saved || p; const i = S.requests.findIndex(x => x.id === row.id);
+  if (row.status === 'request') { if (i >= 0) S.requests[i] = row; else S.requests.push(row); } else { if (i >= 0) S.requests.splice(i, 1); }
+  if (row.status === 'draft') { const j = S.drafts.findIndex(x => x.id === row.id); if (j >= 0) S.drafts[j] = row; else S.drafts.push(row); }
+  return row; }
+const drLog = (p, text) => { const dr = p.date_request = p.date_request || {}; dr.log = [...(dr.log || []), {at: nowIso(), by: myName() || me(), text}]; };
+/* everyone said yes → a draft event the Office finishes in the wizard */
+function drToDraft(p) { const dr = drOf(p);
+  p.status = 'draft';
+  p.wizard = {kind: 'event', step: 'when', title: p.title, start_date: p.start_date, t1: dr.t1 || '', t2: dr.t2 || '', location: p.location || '', department_id: p.department_id, support_dept_ids: (p.support_dept_ids || []).slice(),
+    flags: {}, edits: {}, ownTasks: [], jobs: [], expenses: [], donations: [], tickets: {types: []}, fb: false, files: [], owner: p.created_by || '', from_request: true, handoffs: []};
+  dr.done_at = nowIso(); drLog(p, 'Every department approved — ready to plan'); }
+async function drCommit(p, msg) {
+  if (drAllOk(p)) drToDraft(p);
+  p.updated_at = nowIso();
+  try { await drSave(p); toast(p.status === 'draft' ? '✓ Date approved by everyone — it’s now a draft event for the Office' : msg, 'ok'); }
+  catch (e) { console.error(e); toast('Could not save: ' + (e.message || e), 'bad'); return false; }
+  rerender(); return true;
+}
+
+/* ---------- the Office: answers so far ---------- */
+function mDreqView(id) {
+  const p = S.requests.find(x => x.id === id); if (!p) return `<div class="mhead"><h2>Date request</h2><button class="x" data-act="closeModal">×</button></div><div class="card empty">This request was approved or removed.</div>`;
+  const dr = drOf(p); const coord = canCoordinate(); const mine = myApproveSet(); const nd = drNewDates(p);
+  const row = id2 => { const r = drResp(p)[id2] || {}; const st = r.status || 'pending'; const role = drRole(p, id2);
+    const pill = st === 'approved' ? '<span class="dr-pill ok">✓ Approved</span>' : st === 'new_date' ? '<span class="dr-pill nd">📅 New date</span>' : '<span class="dr-pill wait">⏳ Waiting</span>';
+    let body = '';
+    if (st === 'new_date') { const free = drConflicts(r.date, p.location, p.id).filter(c => c.clash);
+      body = `<div class="dr-sug"><b>Suggests ${esc(fmtD(r.date, DR_FMT))}${r.t1 ? ' · ' + esc(drTimes(r.t1, r.t2)) : ''}</b>${r.note ? `<div class="small" style="margin-top:3px">“${esc(r.note)}”</div>` : ''}
+        ${p.location ? `<div class="tiny" style="margin-top:4px;color:${free.length ? 'var(--bad)' : 'var(--ok)'}">${free.length ? '⚠ ' + esc(p.location) + ' is in use that day: ' + esc(free.map(c => c.title).join(', ')) : '✓ ' + esc(p.location) + ' is free that day'}</div>` : ''}
+        ${coord ? `<div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn sm pri" data-act="dreqUse" data-id="${p.id}" data-dept="${id2}">Use ${esc(fmtD(r.date, {month: 'short', day: 'numeric'}))} — ask the others again</button><button class="btn sm" data-act="dreqKeep" data-id="${p.id}" data-dept="${id2}">Keep ${esc(fmtD(p.start_date, {month: 'short', day: 'numeric'}))}</button></div>` : ''}</div>`; }
+    const acts = st === 'pending' ? (mine.has(id2) ? `<button class="btn sm ok" data-act="dreqOk" data-id="${p.id}" data-dept="${id2}">✓ Approve</button><button class="btn sm" data-act="dreqSug" data-id="${p.id}" data-dept="${id2}">📅 Suggest a date</button>` : coord ? `<button class="btn xs ghost" data-act="dreqOk" data-id="${p.id}" data-dept="${id2}" data-office="1" title="They told you in person or by phone">Mark approved</button>` : '') : '';
+    return `<div class="dr-ans ${st}"><div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">${pill}<b style="flex:1 1 160px">${esc(dname(id2))} <span class="tiny muted" style="font-weight:600">· ${role}</span></b><span class="tiny muted">${r.by ? esc(r.by) + ' · ' + esc(fmtDT(r.at)) : ''}</span>${acts}</div>${body}</div>`; };
+  return `<div class="mhead"><div><h2>${esc(p.title)}</h2><div class="small muted">⏳ Date pending · ${drCount(p)}${nd.length ? ' · ' + nd.length + ' new date suggested' : ''}</div></div><button class="x" data-act="closeModal">×</button></div>
+    <div class="dr-facts">${esc(fmtD(p.start_date, DR_FMT))}${dr.t1 ? ' · ' + esc(drTimes(dr.t1, dr.t2)) : ''}${p.location ? ' · ' + esc(p.location) : ''}<br><span class="tiny muted">Lead: ${esc(dname(p.department_id))}${(p.support_dept_ids || []).filter(x => x !== OFFICE).length ? ' · Supporting: ' + esc((p.support_dept_ids || []).filter(x => x !== OFFICE).map(dname).join(', ')) : ''} · Requested by the Office ${esc(fmtDT(dr.asked_at))}</span></div>
+    ${dr.note ? `<div class="dr-note">💬 Office: “${esc(dr.note)}”</div>` : ''}
+    <div class="hsec">Answers from the departments</div>${drDepts(p).map(row).join('')}
+    ${(dr.log || []).length ? `<details style="margin-top:10px"><summary class="small muted" style="cursor:pointer">History (${dr.log.length})</summary>${dr.log.slice().reverse().map(l => `<div class="tiny" style="padding:3px 0">${esc(fmtDT(l.at))} · ${esc(l.by || '')} — ${esc(l.text)}</div>`).join('')}</details>` : ''}
+    <div class="row" style="justify-content:space-between;gap:8px;margin-top:14px;flex-wrap:wrap">${coord ? `<button class="btn ghost" data-act="dreqCancel" data-id="${p.id}" style="color:var(--bad)">Cancel this request</button><span class="spacer"></span><button class="btn" data-act="dreqEdit" data-id="${p.id}">✏️ Change & ask again</button>` : '<span class="spacer"></span>'}<button class="btn pri" data-act="closeModal">Done</button></div>`;
+}
+/* ---------- director: suggest another date ---------- */
+function mDreqSug(md) { const p = S.requests.find(x => x.id === md.id) || {}; const dr = drOf(p);
+  return `<div class="mhead"><div><h2>📅 Suggest another date</h2><div class="small muted">${esc(p.title || '')} · for ${esc(dname(md.dept))} · the Office will see this</div></div><button class="x" data-act="closeModal">×</button></div>
+    <div class="dr-facts">Requested: ${esc(fmtD(p.start_date, DR_FMT))}${dr.t1 ? ' · ' + esc(drTimes(dr.t1, dr.t2)) : ''}${p.location ? ' · ' + esc(p.location) : ''}</div>
+    <div class="grid2"><label class="f">New date<input type="date" id="sg_date" value=""></label><span></span></div>
+    <div class="grid2"><label class="f">Starts<input type="time" id="sg_t1" value="${esc(dr.t1 || '')}"></label><label class="f">Ends<input type="time" id="sg_t2" value="${esc(dr.t2 || '')}"></label></div>
+    <label class="f">Why (the Office will see this)<textarea id="sg_note" rows="2"></textarea></label>
+    <div class="row" style="justify-content:flex-end;gap:8px;margin-top:12px"><button class="btn" data-act="dreqOpen" data-id="${esc(md.id)}">Cancel</button><button class="btn pri" data-act="dreqSugSend">Send suggestion to the Office</button></div>`; }
+
+const _renderModal37 = renderModal;
+renderModal = function () {
+  const md = S.modal;
+  if (md && ['dreq', 'dreqView', 'dreqSug'].includes(md.type)) {
+    const inner = md.type === 'dreq' ? mDreq(md.row) : md.type === 'dreqView' ? mDreqView(md.id) : mDreqSug(md);
+    $('#modal').innerHTML = `<div class="modal-bg" data-act="bgClose"><div class="modal dr-modal" role="dialog">${inner}</div></div>`; document.body.style.overflow = 'hidden'; return;
+  }
+  _renderModal37();
+  if (md && md.type === 'wiz') hoDecorate(md.row);
+};
+const _bgClose37 = ACT.bgClose; ACT.bgClose = function (d, e) { if (S.modal && ['dreq', 'dreqSug'].includes(S.modal.type)) return; return _bgClose37(d, e); };
+
+Object.assign(ACT, {
+  dreqNew(d) { if (!canCoordinate()) return; S.modal = {type: 'dreq', row: {start_date: (d && d.date) || null, support_dept_ids: []}}; renderModal(); setTimeout(() => { const t = $('#dr_title'); t && t.focus(); }, 30); },
+  dreqOpen(d, e) { if (e) e.stopPropagation(); if (!S.requests.some(x => x.id === d.id)) { toast('That request was already approved or removed'); return; } S.modal = {type: 'dreqView', id: d.id}; renderModal(); },
+  dreqEdit(d) { const p = S.requests.find(x => x.id === d.id); if (!p) return; const dr = drOf(p);
+    S.modal = {type: 'dreq', row: {id: p.id, title: p.title, start_date: p.start_date, t1: dr.t1 || '', t2: dr.t2 || '', location: p.location || '', department_id: p.department_id, support_dept_ids: (p.support_dept_ids || []).slice(), note: dr.note || ''}}; renderModal(); },
+  async dreqSend() {
+    const r = drGrab();
+    if (!r.title) { toast('Give the event a name', 'bad'); $('#dr_title') && $('#dr_title').focus(); return; }
+    if (!r.start_date) { toast('Pick the date', 'bad'); return; }
+    if (!r.department_id) { toast('Pick the lead department', 'bad'); return; }
+    const old = r.id ? S.requests.find(x => x.id === r.id) : null; const t0 = nowIso();
+    const sup = (r.support_dept_ids || []).filter(x => x !== r.department_id);
+    const resp = {}; [r.department_id, ...sup].filter(x => x !== OFFICE).forEach(id => { resp[id] = {status: 'pending'}; });
+    const p = {...(old || {}), id: r.id || uid(), kind: 'event', title: r.title, status: 'request', start_date: r.start_date, end_date: null, start_time: r.t1 || null, end_time: r.t2 || null, location: r.location || '',
+      department_id: r.department_id, support_dept_ids: sup, tasks: (old && old.tasks) || [], notes: (old && old.notes) || [], costs: [], files: [], photos: [], flags: {}, approval_status: 'none',
+      created_by: (old && old.created_by) || me(), created_at: (old && old.created_at) || t0, updated_at: t0,
+      date_request: {...((old && old.date_request) || {}), t1: r.t1 || '', t2: r.t2 || '', note: r.note || '', asked_by: me(), asked_at: t0, responses: resp}};
+    drLog(p, old ? 'Changed and sent again' : 'Sent for approval');
+    const btn = $('[data-act="dreqSend"]'); if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+    try { await drSave(p); } catch (e) { console.error(e); toast('Could not send: ' + (e.message || e), 'bad'); if (btn) { btn.disabled = false; btn.textContent = 'Send for approval →'; } return; }
+    S.modal = {type: 'dreqView', id: p.id}; renderModal(); rerender();
+    toast(`Sent to ${drDepts(p).length} department${drDepts(p).length === 1 ? '' : 's'} for approval`, 'ok');
+  },
+  async dreqOk(d) { const p = S.requests.find(x => x.id === d.id); if (!p) return; const R = p.date_request.responses = p.date_request.responses || {};
+    const byOffice = d.office === '1'; if (byOffice && !confirm(`Mark ${dname(d.dept)} as approved? Use this when the director said yes in person or by phone.`)) return;
+    R[d.dept] = {status: 'approved', by: (myName() || me()) + (byOffice ? ' (for the department)' : ''), at: nowIso()};
+    drLog(p, `${dname(d.dept)} approved the date${byOffice ? ' (marked by the Office)' : ''}`);
+    if (await drCommit(p, `✓ Approved for ${dname(d.dept)}`) && S.modal && S.modal.type === 'dreqView' && !S.requests.some(x => x.id === p.id)) { S.modal = null; renderModal(); }
+    else if (S.modal && S.modal.type === 'dreqView') renderModal(); },
+  dreqSug(d) { S.modal = {type: 'dreqSug', id: d.id, dept: d.dept}; renderModal(); },
+  async dreqSugSend() { const md = S.modal; const p = S.requests.find(x => x.id === md.id); if (!p) return;
+    const date = ($('#sg_date') || {}).value; if (!date) { toast('Pick the date you’d suggest', 'bad'); return; }
+    if (date === p.start_date && ($('#sg_t1') || {}).value === drOf(p).t1) { toast('That’s the same date and time — use Approve instead', 'bad'); return; }
+    p.date_request.responses[md.dept] = {status: 'new_date', date, t1: $('#sg_t1').value || '', t2: $('#sg_t2').value || '', note: String($('#sg_note').value || '').trim(), by: myName() || me(), at: nowIso()};
+    drLog(p, `${dname(md.dept)} suggested ${fmtD(date, DR_FMT)}`);
+    if (await drCommit(p, 'Suggestion sent to the Office')) { S.modal = null; renderModal(); } },
+  async dreqUse(d) { const p = S.requests.find(x => x.id === d.id); if (!p) return; const s = drResp(p)[d.dept]; if (!s || !s.date) return;
+    if (!confirm(`Move “${p.title}” to ${fmtD(s.date, DR_FMT)} and ask the other departments again?`)) return;
+    const dr = p.date_request; p.start_date = s.date; if (s.t1) { dr.t1 = s.t1; p.start_time = s.t1; } if (s.t2) { dr.t2 = s.t2; p.end_time = s.t2; }
+    drDepts(p).forEach(id => { dr.responses[id] = id === d.dept ? {status: 'approved', by: s.by, at: nowIso(), note: 'Suggested this date'} : {status: 'pending'}; });
+    drLog(p, `The Office moved it to ${fmtD(s.date, DR_FMT)} (${dname(d.dept)}’s suggestion) and asked again`);
+    await drCommit(p, 'Date changed — the other departments were asked again'); if (S.modal) renderModal(); },
+  async dreqKeep(d) { const p = S.requests.find(x => x.id === d.id); if (!p) return;
+    p.date_request.responses[d.dept] = {status: 'pending', note: 'The Office kept the original date'};
+    drLog(p, `The Office kept ${fmtD(p.start_date, DR_FMT)} and asked ${dname(d.dept)} again`);
+    await drCommit(p, `Kept the date — ${dname(d.dept)} was asked again`); if (S.modal) renderModal(); },
+  async dreqCancel(d) { const p = S.requests.find(x => x.id === d.id); if (!p || !confirm(`Cancel the date request “${p.title}”? It comes off the calendar.`)) return;
+    try { await B.remove('projects', p.id); } catch (e) { toast('Could not cancel: ' + (e.message || e), 'bad'); return; }
+    S.requests = S.requests.filter(x => x.id !== p.id); S.modal = null; renderModal(); rerender(); toast('Date request cancelled'); },
+  hScroll(d) { const el = document.getElementById(d.v); if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'}); },
+  bellGo() { if (S.view !== 'home' || S.meetingId) { S.meetingId = null; S.view = 'home'; renderApp(); } setTimeout(() => ACT.hScroll({v: 'h_wait'}), 30); }
+});
+
+/* ---------- calendar: pending dates (and suggested ones) ---------- */
+const _calItems37 = calItems;
+calItems = function (from, to, scope) {
+  const out = _calItems37(from, to, scope); const inR = d => d && String(d) >= from && String(d) <= to;
+  const own = ownDepts(); const mineSet = new Set((own.length ? own : myDepts()).map(d => d.id));
+  S.requests.forEach(p => { if (scope === 'mine' && !canCoordinate() && !drDepts(p).some(id => mineSet.has(id))) return;
+    if (inR(p.start_date)) out.push({date: p.start_date, kind: 'req', p, title: '⏳ ' + p.title, color: '#fff8ee', first: true});
+    drNewDates(p).forEach(id => { const s = drResp(p)[id]; if (s.date && s.date !== p.start_date && inR(s.date)) out.push({date: s.date, kind: 'reqs', p, title: '? ' + p.title, color: '#ffffff', first: true, dept: id}); }); });
+  return out.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+};
+const _calLine37 = calLine;
+calLine = function (it) {
+  if (it.kind !== 'req' && it.kind !== 'reqs') return _calLine37(it);
+  const dd = dOf(it.date); const p = it.p; const dr = drOf(p);
+  const sub = it.kind === 'reqs' ? `Suggested by ${esc(dname(it.dept))} instead of ${esc(fmtD(p.start_date, {month: 'short', day: 'numeric'}))}` : `${esc(dname(p.department_id))}${(p.support_dept_ids || []).length ? ' + ' + (p.support_dept_ids || []).filter(x => x !== OFFICE).length + ' supporting' : ''}${dr.t1 ? ' · ' + esc(drTimes(dr.t1, dr.t2)) : ''}${p.location ? ' · ' + esc(p.location) : ''} · ${drCount(p)}`;
+  return `<div class="calrow dr-cal ${it.kind}" ${itemAct(it)}><div class="calday"><span>${dd.toLocaleDateString('en-US', {weekday: 'short'})}</span><b>${dd.getDate()}</b></div><div class="main"><b>${it.kind === 'reqs' ? '? ' : '⏳ '}${esc(p.title)}</b> <span class="type-pill" style="margin:0">${it.kind === 'reqs' ? 'Suggested date' : 'Date pending'}</span><div class="tiny muted">${sub}</div></div></div>`;
+};
+const DR_NEWBTN = '<button class="btn gold" data-act="newEvent">📅 + New event</button>';
+const drAddBtns = h => !canCoordinate() ? h : h.replace(DR_NEWBTN, '<button class="btn gold" data-act="dreqNew">📅 + Date request</button>' + DR_NEWBTN.replace('btn gold', 'btn').replace('📅 + New event', '+ New event'))
+  .replace(/(<button class="btn sm gold" data-act="newEvent" data-date="(\d{4}-\d\d-\d\d)"[^>]*>[^<]*<\/button>)/, '<button class="btn sm gold" data-act="dreqNew" data-date="$2" style="margin-bottom:8px">📅 + Date request on this day</button> $1');
+const _viewCal37 = viewCal;
+viewCal = function () { let h = drAddBtns(_viewCal37());
+  return h.replace('<div class="legend">', '<div class="legend"><span><span class="dot" style="background:#fff8ee;border:1.5px dashed #c98a2b"></span> ⏳ Date pending approval</span>'); };
+
+/* ---------- header bell ---------- */
+const _header37 = header;
+header = function () { let h = _header37(); const n = dreqMyCount() + hoForMe().length; if (!n) return h;
+  return h.replace('<span class="uname">', `<button class="nav-btn delc-hbtn dr-bell" data-act="bellGo" aria-label="${n} thing${n === 1 ? '' : 's'} waiting for you" title="Waiting for you">🔔<span class="n">${n}</span></button><span class="uname">`); };
+
+/* ---------- Home ---------- */
+function drHomeRow(p, depts) { const dr = drOf(p); return depts.map(id => `<div class="trow dr-home" style="border-left:4px solid ${deptColor(p.department_id)}"><span style="font-size:18px">📅</span>
+  <div class="main" data-act="dreqOpen" data-id="${p.id}" style="cursor:pointer"><b>${esc(p.title)}</b><div class="small">${esc(fmtD(p.start_date, DR_FMT))}${dr.t1 ? ' · ' + esc(drTimes(dr.t1, dr.t2)) : ''}${p.location ? ' · ' + esc(p.location) : ''}</div>
+  <div class="tiny muted">For ${esc(dname(id))} (${drRole(p, id)}) · requested by the Office · ${drCount(p)}</div>${dr.note ? `<div class="tiny" style="margin-top:3px;color:var(--navy)">💬 “${esc(dr.note)}”</div>` : ''}</div>
+  <div class="row" style="gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn sm ok" data-act="dreqOk" data-id="${p.id}" data-dept="${id}">✓ Approve</button><button class="btn sm" data-act="dreqSug" data-id="${p.id}" data-dept="${id}">📅 Suggest a date</button></div></div>`).join(''); }
+const _viewHome37 = viewHome;
+viewHome = function () {
+  let h = drAddBtns(_viewHome37()); const mine = myApproveSet(); const coord = canCoordinate();
+  const D = dreqForMe(); const H = hoForMe();
+  const pressN = typeof pressWaiting === 'function' && typeof canApprovePress === 'function' && canApprovePress() ? pressWaiting().length : 0;
+  let top = '', boxes = '';
+  if (D.length || H.length) {
+    const nD = dreqMyCount();
+    const oldest = D.map(p => drOf(p).asked_at).filter(Boolean).sort()[0]; const dueH = H.map(x => x.h.due).filter(Boolean).sort()[0];
+    const tile = (n, l, s, go) => `<button class="dr-tile ${n ? 'on' : ''}" ${go && n ? `data-act="hScroll" data-v="${go}"` : 'disabled'}><b>${n}</b><span><span class="l">${l}</span><span class="s">${s}</span></span></button>`;
+    top = `<div class="dr-wait" id="h_wait">${tile(nD, 'Dates to OK', oldest ? 'Oldest sent ' + fmtD(oldest.slice(0, 10), {month: 'short', day: 'numeric'}) : 'All caught up', 'h_dreq')}${tile(H.length, 'Event sections for you', dueH ? 'Next due ' + fmtD(dueH, {month: 'short', day: 'numeric'}) : H.length ? 'No due date' : 'All caught up', 'h_ho')}${typeof pressWaiting === 'function' && typeof canApprovePress === 'function' && canApprovePress() ? tile(pressN, 'Press releases to OK', pressN ? 'Waiting for you' : 'All caught up', null) : ''}</div>`;
+    if (D.length) boxes += `<div class="hsec" id="h_dreq" style="margin-top:0">📅 Dates waiting for your OK (${nD})</div>${D.map(p => drHomeRow(p, drDepts(p).filter(id => mine.has(id) && drSt(p, id) === 'pending'))).join('')}`;
+    if (H.length) boxes += `<div class="hsec" id="h_ho">↗ Event sections waiting for you (${H.length})</div>${H.map(({x, h: ho}) => `<div class="trow" style="border-left:4px solid ${deptColor(ho.dept_id)}"><span style="font-size:18px">↗</span>
+      <div class="main" data-act="hoOpenMine" data-pid="${x.id}" data-h="${ho.id}" style="cursor:pointer"><b>${esc(stepName(x.wizard, ho.step))} — ${HO_MODE[ho.mode] || 'Fill in'}</b><div class="small">${esc(x.title)}${x.start_date ? ' · ' + esc(fmtD(x.start_date, {month: 'short', day: 'numeric'})) : ''}</div>
+      <div class="tiny muted">For ${esc(dname(ho.dept_id))} · from the Office${ho.due ? ` · <b style="color:${ho.due < today() ? 'var(--bad)' : 'var(--warn)'}">due ${esc(fmtD(ho.due, {month: 'short', day: 'numeric'}))}</b>` : ''}</div>${ho.note ? `<div class="tiny" style="margin-top:3px;color:var(--navy)">💬 “${esc(ho.note)}”</div>` : ''}</div>
+      <button class="btn sm pri" data-act="hoOpenMine" data-pid="${x.id}" data-h="${ho.id}">Open</button></div>`).join('')}`;
+  }
+  if (coord) {
+    const out = S.requests.slice().sort((a, b) => String(a.start_date).localeCompare(String(b.start_date)));
+    if (out.length) boxes += `<div class="hsec">📅 Date requests out for approval (${out.length})</div>${out.map(p => { const nd = drNewDates(p).length; return `<div class="trow" style="border-left:4px dashed #c98a2b;background:#fffaf2"><span style="font-size:18px">⏳</span><div class="main" data-act="dreqOpen" data-id="${p.id}" style="cursor:pointer"><b>${esc(p.title)}</b><div class="small">${esc(fmtD(p.start_date, DR_FMT))} · ${esc(dname(p.department_id))}</div><div class="tiny muted">${drCount(p)}${nd ? ` · <b style="color:var(--warn)">${nd} new date suggested — your call</b>` : ''}</div></div><button class="btn sm" data-act="dreqOpen" data-id="${p.id}">See answers</button></div>`; }).join('')}`;
+    const ready = S.drafts.filter(x => (x.wizard || {}).from_request && x.date_request && x.date_request.done_at && x.date_request.done_at.slice(0, 10) >= addDays(today(), -14));
+    if (ready.length) boxes += `<div class="hsec">✅ Dates approved — ready to plan (${ready.length})</div>${ready.map(x => `<div class="trow" style="border-left:4px solid var(--ok)"><span style="font-size:18px">✅</span><div class="main" data-act="draftOpen" data-id="${x.id}" style="cursor:pointer"><b>${esc(x.title)}</b><div class="tiny muted">${esc(fmtD(x.start_date, DR_FMT))} · approved by every department ${esc(fmtDT(x.date_request.done_at))}</div></div><button class="btn sm pri" data-act="draftOpen" data-id="${x.id}">Finish planning</button></div>`).join('')}`;
+    const S2 = hoSentOut();
+    if (S2.length) boxes += `<div class="hsec">↗ Sections sent to departments (${S2.length})</div>${S2.map(({x, h: ho}) => { const back = ho.status !== 'open';
+      return `<div class="trow" style="border-left:4px solid ${deptColor(ho.dept_id)}"><span style="font-size:18px">${back ? (ho.status === 'changes' ? '✏️' : '✓') : '↗'}</span><div class="main" data-act="hoOfficeOpen" data-pid="${x.id}" data-step="${ho.step}" style="cursor:pointer"><b>${esc(x.title)} · ${esc(stepName(x.wizard, ho.step))}</b>
+        <div class="tiny muted">${back ? `${ho.status === 'changes' ? '<b style="color:var(--warn)">Needs changes</b>' : '<b style="color:var(--ok)">' + (ho.status === 'ok' ? 'Looks good' : 'Done') + '</b>'} — ${esc(dname(ho.dept_id))}${ho.reply ? ': “' + esc(ho.reply) + '”' : ''}` : `With ${esc(dname(ho.dept_id))} to ${(HO_MODE[ho.mode] || 'Fill in').toLowerCase()}${ho.due ? ' · due ' + esc(fmtD(ho.due, {month: 'short', day: 'numeric'})) : ''}`}</div></div>
+        ${back ? `<button class="btn sm" data-act="hoAck" data-pid="${x.id}" data-h="${ho.id}">Got it</button>` : ''}</div>`; }).join('')}`;
+  }
+  if (!top && !boxes) return h;
+  if (boxes && h.includes('<div class="hsec" id="h_mytasks">')) { h = h.replace('<div class="hsec" id="h_mytasks">', boxes + '<div class="hsec" id="h_mytasks">'); boxes = ''; }
+  return h.replace('<div class="page">', '<div class="page">' + top + boxes);
+};
+
+/* ---------- section hand-offs in the wizard ---------- */
+function hoOf(r, k) { return (r.handoffs || []).filter(h => h.step === k); }
+function hoDecorate(r) {
+  const box = $('#modal .modal.wz'); if (!box) return;
+  if (r._ho) { const h = (r.handoffs || []).find(x => x.id === r._ho); if (!h) return;
+    box.classList.add('ho-editing'); const st = box.querySelector('.wz-steps'); if (st) st.remove();
+    const h2 = box.querySelector('.mhead h2'); if (h2) h2.textContent = `${stepName(r, h.step)} — ${HO_MODE[h.mode] || 'Fill in'}`;
+    const sm = box.querySelector('.mhead .small'); if (sm) sm.textContent = `${r.title || ''}${r.start_date ? ' · ' + fmtD(r.start_date, DR_FMT) : ''}${r.t1 ? ' · ' + drTimes(r.t1, r.t2) : ''}${r.location ? ' · ' + r.location : ''}`;
+    const pg = box.querySelector('.wz-page'); if (pg) pg.insertAdjacentHTML('afterbegin', `<div class="ho-ask">💬 The Office asked ${esc(dname(h.dept_id))} to <b>${h.mode === 'review' ? 'review' : 'fill in'}</b> this section${h.note ? `: “${esc(h.note)}”` : '.'}${h.due ? ` <b>Due ${esc(fmtD(h.due, {month: 'short', day: 'numeric'}))}.</b>` : ''}<div class="tiny" style="margin-top:4px">You can only change this section. The rest of the event stays with the Office.</div></div>`);
+    const f = box.querySelector('.wz-foot'); if (f) f.innerHTML = `<label class="f" style="flex:1 1 260px;margin:0">Note back to the Office (optional)<input id="ho_reply" value="${esc(h.reply || '')}"></label>
+      <div class="row" style="gap:8px;flex-wrap:wrap;align-items:flex-end"><button class="btn" data-act="hoLater">Save for later</button>${h.mode === 'review' ? '<button class="btn" data-act="hoBack" data-v="changes">✏️ Needs changes</button><button class="btn ok" data-act="hoBack" data-v="ok">✓ Looks good</button>' : '<button class="btn ok" data-act="hoBack" data-v="done">✓ Done — send back to the Office</button>'}</div>`;
+    return; }
+  if (!canCoordinate() || !r.step || r.step === 'start' || !wzReady(r)) return;
+  /* chips on the page buttons */
+  (r.handoffs || []).forEach(h => { const b = box.querySelector(`.wz-steps button[data-v="${h.step}"]`); if (!b || (h.status !== 'open' && h.seen)) return;
+    const short = (dname(h.dept_id).split(/\s|&/)[0] || '').slice(0, 14);
+    b.insertAdjacentHTML('beforeend', `<span class="ho-chip ${h.status}">${h.status === 'open' ? 'with ' + esc(short) : h.status === 'changes' ? 'needs changes' : 'done ✓'}</span>`); });
+  const pg = box.querySelector('.wz-page'); if (!pg) return; const k = r.step; const L = hoOf(r, k);
+  const cur = L.filter(h => h.status === 'open' || !h.seen).map(h => `<div class="ho-status ${h.status}"><span>${h.status === 'open' ? `↗ With <b>${esc(dname(h.dept_id))}</b> to ${(HO_MODE[h.mode] || 'Fill in').toLowerCase()}${h.due ? ' · due ' + esc(fmtD(h.due, {month: 'short', day: 'numeric'})) : ''}` : `${h.status === 'changes' ? '✏️ <b>Needs changes</b>' : '✓ <b>' + (h.status === 'ok' ? 'Looks good' : 'Done') + '</b>'} — ${esc(dname(h.dept_id))}${h.reply ? ': “' + esc(h.reply) + '”' : ''}`}</span>
+    <span class="spacer"></span>${h.status === 'open' ? `<button class="btn xs ghost" data-act="hoCancel" data-h="${h.id}">Take it back</button>` : `<button class="btn xs" data-act="hoSeen" data-h="${h.id}">Got it</button>`}</div>`).join('');
+  const open = r._hoOpen === k;
+  const D = S.departments.filter(d => d.active !== false && d.id !== OFFICE).sort((a, b) => (a.sort || 0) - (b.sort || 0));
+  const pre = [r.department_id, ...(r.support_dept_ids || [])].filter(x => x && x !== OFFICE);
+  const form = open ? `<div class="ho-form"><b>Send “${esc(stepName(r, k))}” to a department</b>
+    <div class="grid2" style="margin-top:8px"><label class="f">Department<select id="ho_dept">${D.map(d => `<option value="${d.id}" ${d.id === pre[0] ? 'selected' : ''}>${esc(d.name)}${pre.includes(d.id) ? (d.id === r.department_id ? ' (lead)' : ' (supporting)') : ''}</option>`).join('')}</select></label><label class="f">Due (optional)<input type="date" id="ho_due" value=""></label></div>
+    <div class="lbl" style="font-size:12px;font-weight:700;color:var(--muted);margin:2px 0 6px">What should they do?</div>
+    <div class="ho-modes"><label class="ho-mode"><input type="radio" name="ho_mode" value="review"> <span><b>Review</b><br><span class="tiny muted">Check what the Office entered</span></span></label><label class="ho-mode"><input type="radio" name="ho_mode" value="fill" checked> <span><b>Fill in</b><br><span class="tiny muted">They enter this section</span></span></label></div>
+    <label class="f" style="margin-top:8px">Note<textarea id="ho_note" rows="2"></textarea></label>
+    <div class="row" style="justify-content:flex-end;gap:8px"><button class="btn" data-act="hoClose">Cancel</button><button class="btn pri" data-act="hoSend">Send to the department</button></div></div>` : '';
+  pg.insertAdjacentHTML('afterbegin', `<div class="ho-bar">${cur}${!open ? `<div class="row" style="justify-content:flex-end"><button class="btn sm ho-btn" data-act="hoOpenForm">↗ Send to a department</button></div>` : ''}${form}</div>`);
+}
+/* the Office's own draft saves never keep the hand-off editing flags */
+const _wzSaveDraft37 = wzSaveDraft;
+wzSaveDraft = async function (quiet) { const md = S.modal; if (md && md.type === 'wiz' && md.row._ho) return hoSaveMine(quiet);
+  const r = md && md.row; const keep = r && r._hoOpen; if (r) delete r._hoOpen; try { return await _wzSaveDraft37(quiet); } finally { if (r && keep) r._hoOpen = keep; } };
+/* a director saving their section: write only the wizard state back into the draft */
+async function hoSaveMine(quiet) {
+  const md = S.modal; if (!md || md.type !== 'wiz' || !md.row._ho) return; const r = md.row; const x = S.drafts.find(p => p.id === r.pid); if (!x) return;
+  const w = clone(r); ['tplTasks', '_created', '_ho', '_hoOpen', '_savedAt', 'pid'].forEach(k => delete w[k]); const row = {...x, wizard: w, updated_at: nowIso()};
+  try { const saved = await B.upsert('projects', row); const i = S.drafts.findIndex(p => p.id === row.id); S.drafts[i] = saved || row; r._savedAt = row.updated_at; return true; }
+  catch (e) { console.error(e); if (!quiet) toast('Could not save: ' + (e.message || e), 'bad'); return false; }
+}
+/* the Office updating a hand-off from Home (without the wizard open) */
+async function hoPatch(pid, hid, fn) { const x = S.drafts.find(p => p.id === pid); if (!x) return; const w = clone(x.wizard || {}); const h = (w.handoffs || []).find(z => z.id === hid); if (!h) return; fn(h);
+  const row = {...x, wizard: w, updated_at: nowIso()}; try { const saved = await B.upsert('projects', row); const i = S.drafts.findIndex(p => p.id === pid); S.drafts[i] = saved || row; } catch (e) { toast('Could not save: ' + (e.message || e), 'bad'); } }
+const _closeModal37 = ACT.closeModal;
+ACT.closeModal = async function (d) { const md = S.modal; if (md && md.type === 'wiz' && md.row._ho) { wizGrab(); clearTimeout(_dSaveT); await hoSaveMine(true); S.modal = null; renderModal(); rerender(); toast('Saved — finish it from Home'); return; } return _closeModal37(d); };
+const _draftOpen37 = ACT.draftOpen;
+ACT.draftOpen = function (d) { const out = _draftOpen37(d); if (S.modal && S.modal.type === 'wiz') { delete S.modal.row._ho; delete S.modal.row._hoOpen; S.modal.row.handoffs = S.modal.row.handoffs || []; renderModal(); } return out; };
+Object.assign(ACT, {
+  hoOpenForm() { const md = S.modal; if (!md || md.type !== 'wiz') return; wizGrab(); md.row._hoOpen = md.row.step; renderModal(); setTimeout(() => { const f = $('.ho-form'); f && f.scrollIntoView({block: 'nearest'}); }, 30); },
+  hoClose() { const md = S.modal; if (!md) return; wizGrab(); md.row._hoOpen = null; renderModal(); },
+  async hoSend() { const md = S.modal; if (!md || md.type !== 'wiz') return; const due = ($('#ho_due') || {}).value || null; const dep = ($('#ho_dept') || {}).value;
+    const mode = (document.querySelector('input[name="ho_mode"]:checked') || {}).value || 'fill'; const note = String(($('#ho_note') || {}).value || '').trim();
+    const r = wizGrab(); if (!dep) { toast('Pick the department', 'bad'); return; }
+    r.handoffs = [...(r.handoffs || []).filter(h => !(h.step === r.step && h.dept_id === dep && h.status === 'open')), {id: 'ho' + uid().slice(0, 8), step: r.step, dept_id: dep, mode, due, note, status: 'open', by: myName() || me(), at: nowIso()}];
+    r._hoOpen = null; await wzSaveDraft(); renderModal(); toast(`Sent “${stepName(r, r.step)}” to ${dname(dep)}`, 'ok'); },
+  async hoCancel(d) { const md = S.modal; if (!md || md.type !== 'wiz') return; const r = wizGrab(); r.handoffs = (r.handoffs || []).filter(h => h.id !== d.h); await wzSaveDraft(); renderModal(); toast('Taken back'); },
+  async hoSeen(d) { const md = S.modal; if (!md || md.type !== 'wiz') return; const r = wizGrab(); const h = (r.handoffs || []).find(x => x.id === d.h); if (h) h.seen = true; await wzSaveDraft(); renderModal(); },
+  async hoAck(d, e) { if (e) e.stopPropagation(); await hoPatch(d.pid, d.h, h => { h.seen = true; }); rerender(); },
+  hoOfficeOpen(d) { ACT.draftOpen({id: d.pid}); if (S.modal && S.modal.type === 'wiz') { S.modal.row.step = d.step; renderModal(); } },
+  hoOpenMine(d, e) { if (e) e.stopPropagation(); const x = S.drafts.find(p => p.id === d.pid); if (!x) { toast('That event is no longer a draft'); return; } const h = draftHos(x).find(z => z.id === d.h); if (!h) return;
+    if (!myApproveSet().has(h.dept_id) && !isAdmin()) { toast('This section was sent to ' + dname(h.dept_id), 'bad'); return; }
+    const r = {...clone(x.wizard || {}), pid: x.id, _savedAt: x.updated_at, _ho: h.id, step: h.step}; r.flags = r.flags || {}; r.ownTasks = r.ownTasks || []; r.handoffs = r.handoffs || [];
+    S.modal = {type: 'wiz', row: r}; renderModal(); },
+  hoLater() { ACT.closeModal(); },
+  async hoBack(d) { const md = S.modal; if (!md || md.type !== 'wiz' || !md.row._ho) return; const r = wizGrab(); const h = (r.handoffs || []).find(x => x.id === r._ho); if (!h) return;
+    h.status = d.v; h.reply = String(($('#ho_reply') || {}).value || '').trim(); h.done_by = myName() || me(); h.done_at = nowIso(); h.seen = false;
+    clearTimeout(_dSaveT); if (!(await hoSaveMine())) return; S.modal = null; renderModal(); rerender(); toast(d.v === 'changes' ? 'Sent back to the Office — needs changes' : 'Sent back to the Office', 'ok'); }
+});
+
+/* ---------- small in-app demo: one request waiting, so the flow can be tried ---------- */
+function drDemo(d) { d.projects = d.projects || []; if (d.projects.some(p => p.status === 'request')) return;
+  const dep = (d.departments || []); const lead = (dep.find(x => x.id === 'd-hospitality') || dep[0] || {}).id; const sup = (dep.find(x => x.id === OUT_DEPT) || dep[1] || {}).id;
+  const dt = addDays(today(), 45); const t0 = nowIso();
+  d.projects.push({id: 'req-demo', kind: 'event', title: 'Valentine’s Spaghetti Dinner', status: 'request', start_date: dt, end_date: null, start_time: '17:00', end_time: '19:30', location: 'Social Hall', department_id: lead, support_dept_ids: sup && sup !== lead ? [sup] : [],
+    tasks: [], notes: [], costs: [], files: [], photos: [], flags: {}, approval_status: 'none', created_by: 'Church Office', created_at: t0, updated_at: t0,
+    date_request: {t1: '17:00', t2: '19:30', note: 'Same weekend as last year. Need the hall from 2 PM for setup.', asked_by: 'Church Office', asked_at: t0, responses: Object.fromEntries([lead, sup].filter((x, i, a) => x && a.indexOf(x) === i).map(id => [id, {status: 'pending'}])), log: [{at: t0, by: 'Church Office', text: 'Sent for approval'}]}}); }
+(function () { const seed = DEMO_SEED; DEMO_SEED = function () { const d = seed(); drDemo(d); return d; }; })();
+
+document.head.insertAdjacentHTML('beforeend', `<style id="p37">
+.dr-modal{max-width:920px}
+.dr-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px}
+@media (max-width:760px){.dr-grid{grid-template-columns:1fr}}
+.dr-sups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+@media (max-width:520px){.dr-sups{grid-template-columns:1fr}}
+.dr-sup{display:flex;align-items:center;gap:8px;border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;font-size:14px;cursor:pointer;min-height:40px}
+.dr-sup.on{border-color:var(--navy);background:#e6ecf5}
+.dr-side{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
+.dr-conf{display:flex;gap:8px;padding:7px 9px;border-radius:8px;background:#f5f7fb;font-size:13px;margin-bottom:5px}.dr-conf b:first-child{min-width:70px}
+.dr-conf.clash{background:#fcebea;color:#8f1f26}
+.dr-free{font-size:13px;color:var(--ok);font-weight:700}
+.dr-next{margin-top:12px;background:#eef3fa;border:1px solid #c9d8f5;border-radius:12px;padding:10px 12px;font-size:13px;color:var(--navy)}.dr-next ol{margin:6px 0 0;padding-left:18px}
+.dr-facts{font-size:14.5px;margin-bottom:8px}
+.dr-note{background:#eef3fa;border-radius:10px;padding:8px 11px;font-size:14px;color:var(--navy);margin-bottom:6px}
+.dr-ans{border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:6px;background:#fff}.dr-ans.new_date{background:#fff8ee}
+.dr-pill{font-size:12px;font-weight:800;border-radius:999px;padding:3px 9px;white-space:nowrap}.dr-pill.ok{background:#e6f4ea;color:#14663a}.dr-pill.nd{background:#fdf1e2;color:#7a4a08}.dr-pill.wait{background:#e6ecf5;color:var(--navy)}
+.dr-sug{margin-top:8px;font-size:14px}
+.dr-cal{border-left:4px dashed #c98a2b!important;background:#fff8ee}
+.dr-cal.reqs{background:#fff;opacity:.9}
+.ev[data-req]{color:#7a4a08!important;border:1.5px dashed #c98a2b;font-weight:700}
+.ev[data-req="reqs"]{background:#fff!important;font-weight:600}
+.dr-bell{position:relative}.dr-bell .n{margin-left:4px;background:#fff;color:var(--navy);border-radius:9px;padding:0 6px;font-size:11px;font-weight:900}
+.dr-wait{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-bottom:14px}
+.dr-tile{display:flex;align-items:center;gap:12px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 14px;font:inherit;cursor:default;color:var(--ink,#18233a)}
+.dr-tile b{font-size:26px;font-weight:900;color:var(--navy);min-width:24px}
+.dr-tile.on{background:var(--navy);border-color:var(--navy);color:#fff;cursor:pointer}.dr-tile.on b{color:#fff}
+.dr-tile .l{display:block;font-weight:800}.dr-tile .s{display:block;font-size:12px;opacity:.8}
+.dr-home .main{min-width:0}
+.ho-bar{margin-bottom:10px}
+.ho-status{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-radius:10px;padding:8px 11px;margin-bottom:6px;font-size:13.5px;background:#e6ecf5;color:var(--navy)}
+.ho-status.done,.ho-status.ok{background:#e6f4ea;color:#14663a}.ho-status.changes{background:#fdf1e2;color:#7a4a08}
+.ho-btn{border-color:var(--navy);color:var(--navy);background:#e6ecf5}
+.ho-form{border:2px solid var(--navy);border-radius:12px;padding:12px 14px;background:#fff;margin-bottom:8px}
+.ho-modes{display:flex;gap:8px;flex-wrap:wrap}.ho-mode{flex:1 1 170px;display:flex;gap:8px;align-items:flex-start;border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer}
+.ho-mode:has(input:checked){border-color:var(--navy);background:#e6ecf5}
+.ho-chip{margin-left:4px;font-size:10.5px;font-weight:800;border-radius:999px;padding:1px 6px;background:#e6ecf5;color:var(--navy)}
+.wz-steps button.on .ho-chip{background:#fff}
+.ho-chip.done,.ho-chip.ok{background:#e6f4ea;color:#14663a}.ho-chip.changes{background:#fdf1e2;color:#7a4a08}
+.ho-ask{background:#eef3fa;border:1px solid #c9d8f5;border-radius:10px;padding:9px 12px;font-size:14px;color:var(--navy);margin-bottom:12px}
+.modal.ho-editing .wz-foot{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+</style>`);
 
 start();
 </script>
