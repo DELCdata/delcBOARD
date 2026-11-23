@@ -6030,17 +6030,20 @@ const drOf = p => p.date_request || {};
 const drResp = p => drOf(p).responses || {};
 const drDepts = p => [p.department_id, ...(p.support_dept_ids || [])].filter((x, i, a) => x && a.indexOf(x) === i && x !== OFFICE);
 const drRole = (p, id) => id === p.department_id ? 'lead' : 'supporting';
+/* Derek 2026-11-23: the date is good once the LEAD department approves; supporting departments are kept in the loop only */
+const drAppr = p => [p.department_id].filter(x => x && x !== OFFICE);
+const drSupp = p => drDepts(p).filter(id => id !== p.department_id);
 const drSt = (p, id) => (drResp(p)[id] || {}).status || 'pending';
-const drAllOk = p => { const L = drDepts(p); return L.length > 0 && L.every(id => drSt(p, id) === 'approved'); };
-const drNewDates = p => drDepts(p).filter(id => drSt(p, id) === 'new_date');
-const drCount = p => { const L = drDepts(p); return `${L.filter(id => drSt(p, id) === 'approved').length} of ${L.length} approved`; };
+const drAllOk = p => { const L = drAppr(p); return L.length > 0 && L.every(id => drSt(p, id) === 'approved'); };
+const drNewDates = p => drAppr(p).filter(id => drSt(p, id) === 'new_date');
+const drCount = p => { const id = drAppr(p)[0]; const st = id ? drSt(p, id) : 'pending'; return st === 'approved' ? 'Approved' : st === 'new_date' ? `${dname(id)} suggested another date` : `Waiting on ${dname(id)}`; };
 const dname = id => (dept(id) || {}).name || 'Department';
 /* departments whose director I am (an admin in demo mode answers for all) */
 function myApproveDepts() { const m = myMember(); const mid = m && m.id;
   return S.departments.filter(d => d.active !== false && d.id !== OFFICE && ((mid && (d.director_ids || []).includes(mid)) || (S.backend === 'local' && isAdmin()))); }
 const myApproveSet = () => new Set(myApproveDepts().map(d => d.id));
-function dreqForMe() { const mine = myApproveSet(); return S.requests.filter(p => drDepts(p).some(id => mine.has(id) && drSt(p, id) === 'pending')); }
-function dreqMyCount() { const mine = myApproveSet(); return S.requests.reduce((s, p) => s + drDepts(p).filter(id => mine.has(id) && drSt(p, id) === 'pending').length, 0); }
+function dreqForMe() { const mine = myApproveSet(); return S.requests.filter(p => drAppr(p).some(id => mine.has(id) && drSt(p, id) === 'pending')); }
+function dreqMyCount() { const mine = myApproveSet(); return S.requests.reduce((s, p) => s + drAppr(p).filter(id => mine.has(id) && drSt(p, id) === 'pending').length, 0); }
 /* hand-offs */
 const HO_MODE = {fill: 'Fill in', review: 'Review'};
 const HO_ST = {open: 'with', done: 'done by', ok: 'looked over by', changes: 'needs changes —'};
@@ -6071,7 +6074,7 @@ const DR_LOCS = ['Nave', 'Chapel', 'Social Hall', 'FLC', 'FLC Board', 'Parlor', 
 function mDreq(r) {
   const D = S.departments.filter(d => d.active !== false && d.id !== OFFICE).sort((a, b) => (a.sort || 0) - (b.sort || 0));
   const lead = dept(r.department_id); const dir = lead ? (lead.director_ids || []).map(id => (mem(id) || {}).name).filter(Boolean).join(', ') || lead.leader || '' : '';
-  return `<div class="mhead"><div><h2>📅 New date request</h2><div class="small muted">Hold a date and ask the departments involved to OK it. Once they all approve, it becomes a draft event to finish in the event wizard.</div></div><button class="x" data-act="closeModal">×</button></div>
+  return `<div class="mhead"><div><h2>📅 New date request</h2><div class="small muted">Hold a date and ask the lead department to OK it. Once it does, it becomes a draft event to finish in the event wizard.</div></div><button class="x" data-act="closeModal">×</button></div>
     <div class="dr-grid"><div>
       <label class="f">Event name<input id="dr_title" value="${esc(r.title || '')}"></label>
       <div class="grid2"><label class="f">Date<input type="date" id="dr_date" data-drc="1" value="${esc(r.start_date || '')}"></label>
@@ -6079,13 +6082,13 @@ function mDreq(r) {
       <div class="grid2"><label class="f">Starts<input type="time" id="dr_t1" value="${esc(r.t1 || '')}"></label><label class="f">Ends<input type="time" id="dr_t2" value="${esc(r.t2 || '')}"></label></div>
       <label class="f">Lead department<select id="dr_lead"><option value="">— Pick —</option>${D.map(d => `<option value="${d.id}" ${d.id === r.department_id ? 'selected' : ''}>${esc(d.name)}</option>`).join('')}</select></label>
       ${lead ? `<div class="tiny muted" style="margin:-6px 0 10px">Director: ${esc(dir || '—')} · approves the date</div>` : ''}
-      <div class="lbl" style="font-size:12px;font-weight:700;color:var(--muted);margin:4px 0 6px">Supporting departments (optional) — they also OK the date</div>
+      <div class="lbl" style="font-size:12px;font-weight:700;color:var(--muted);margin:4px 0 6px">Supporting departments (optional) — kept in the loop, no approval needed</div>
       <div class="dr-sups">${D.filter(d => d.id !== r.department_id).map(d => `<label class="dr-sup ${(r.support_dept_ids || []).includes(d.id) ? 'on' : ''}"><input type="checkbox" class="dr_sup" value="${d.id}" ${(r.support_dept_ids || []).includes(d.id) ? 'checked' : ''}> ${esc(d.name)}</label>`).join('')}</div>
       <div class="tiny muted" style="margin-top:4px">These carry into the event as its lead and supporting departments.</div>
       <label class="f" style="margin-top:10px">Note to the directors (optional)<textarea id="dr_note" rows="2">${esc(r.note || '')}</textarea></label>
     </div><div>
       <div class="dr-side"><div class="hsec" style="margin-top:0">Already on that day</div><div id="dr_conf">${drConfHtml(r.start_date, r.location, r.id)}</div></div>
-      <div class="dr-next"><b>What happens next</b><ol><li>The date shows on the calendar as ⏳ Pending.</li><li>The lead and supporting directors each approve it or suggest another date.</li><li>When everyone approves, it becomes a draft event for the Office to finish.</li></ol></div>
+      <div class="dr-next"><b>What happens next</b><ol><li>The date shows on the calendar as ⏳ Pending.</li><li>The lead department’s director approves it or suggests another date.</li><li>Once the lead approves, it becomes a draft event for the Office to finish.</li></ol></div>
     </div></div>
     <div class="row" style="justify-content:flex-end;gap:8px;margin-top:12px"><button class="btn" data-act="closeModal">Cancel</button><button class="btn pri" data-act="dreqSend">${r.id ? 'Save & ask again →' : 'Send for approval →'}</button></div>`;
 }
@@ -6107,11 +6110,11 @@ function drToDraft(p) { const dr = drOf(p);
   p.status = 'draft';
   p.wizard = {kind: 'event', step: 'when', title: p.title, start_date: p.start_date, t1: dr.t1 || '', t2: dr.t2 || '', location: p.location || '', department_id: p.department_id, support_dept_ids: (p.support_dept_ids || []).slice(),
     flags: {}, edits: {}, ownTasks: [], jobs: [], expenses: [], donations: [], tickets: {types: []}, fb: false, files: [], owner: p.created_by || '', from_request: true, handoffs: []};
-  dr.done_at = nowIso(); drLog(p, 'Every department approved — ready to plan'); }
+  dr.done_at = nowIso(); drLog(p, 'Lead department approved — ready to plan'); }
 async function drCommit(p, msg) {
   if (drAllOk(p)) drToDraft(p);
   p.updated_at = nowIso();
-  try { await drSave(p); toast(p.status === 'draft' ? '✓ Date approved by everyone — it’s now a draft event for the Office' : msg, 'ok'); }
+  try { await drSave(p); toast(p.status === 'draft' ? '✓ Date approved — it’s now a draft event for the Office' : msg, 'ok'); }
   catch (e) { console.error(e); toast('Could not save: ' + (e.message || e), 'bad'); return false; }
   rerender(); return true;
 }
@@ -6126,13 +6129,13 @@ function mDreqView(id) {
     if (st === 'new_date') { const free = drConflicts(r.date, p.location, p.id).filter(c => c.clash);
       body = `<div class="dr-sug"><b>Suggests ${esc(fmtD(r.date, DR_FMT))}${r.t1 ? ' · ' + esc(drTimes(r.t1, r.t2)) : ''}</b>${r.note ? `<div class="small" style="margin-top:3px">“${esc(r.note)}”</div>` : ''}
         ${p.location ? `<div class="tiny" style="margin-top:4px;color:${free.length ? 'var(--bad)' : 'var(--ok)'}">${free.length ? '⚠ ' + esc(p.location) + ' is in use that day: ' + esc(free.map(c => c.title).join(', ')) : '✓ ' + esc(p.location) + ' is free that day'}</div>` : ''}
-        ${coord ? `<div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn sm pri" data-act="dreqUse" data-id="${p.id}" data-dept="${id2}">Use ${esc(fmtD(r.date, {month: 'short', day: 'numeric'}))} — ask the others again</button><button class="btn sm" data-act="dreqKeep" data-id="${p.id}" data-dept="${id2}">Keep ${esc(fmtD(p.start_date, {month: 'short', day: 'numeric'}))}</button></div>` : ''}</div>`; }
+        ${coord ? `<div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn sm pri" data-act="dreqUse" data-id="${p.id}" data-dept="${id2}">Use ${esc(fmtD(r.date, {month: 'short', day: 'numeric'}))}</button><button class="btn sm" data-act="dreqKeep" data-id="${p.id}" data-dept="${id2}">Keep ${esc(fmtD(p.start_date, {month: 'short', day: 'numeric'}))}</button></div>` : ''}</div>`; }
     const acts = st === 'pending' ? (mine.has(id2) ? `<button class="btn sm ok" data-act="dreqOk" data-id="${p.id}" data-dept="${id2}">✓ Approve</button><button class="btn sm" data-act="dreqSug" data-id="${p.id}" data-dept="${id2}">📅 Suggest a date</button>` : coord ? `<button class="btn xs ghost" data-act="dreqOk" data-id="${p.id}" data-dept="${id2}" data-office="1" title="They told you in person or by phone">Mark approved</button>` : '') : '';
     return `<div class="dr-ans ${st}"><div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">${pill}<b style="flex:1 1 160px">${esc(dname(id2))} <span class="tiny muted" style="font-weight:600">· ${role}</span></b><span class="tiny muted">${r.by ? esc(r.by) + ' · ' + esc(fmtDT(r.at)) : ''}</span>${acts}</div>${body}</div>`; };
-  return `<div class="mhead"><div><h2>${esc(p.title)}</h2><div class="small muted">⏳ Date pending · ${drCount(p)}${nd.length ? ' · ' + nd.length + ' new date suggested' : ''}</div></div><button class="x" data-act="closeModal">×</button></div>
+  return `<div class="mhead"><div><h2>${esc(p.title)}</h2><div class="small muted">⏳ Date pending · ${esc(drCount(p))}</div></div><button class="x" data-act="closeModal">×</button></div>
     <div class="dr-facts">${esc(fmtD(p.start_date, DR_FMT))}${dr.t1 ? ' · ' + esc(drTimes(dr.t1, dr.t2)) : ''}${p.location ? ' · ' + esc(p.location) : ''}<br><span class="tiny muted">Lead: ${esc(dname(p.department_id))}${(p.support_dept_ids || []).filter(x => x !== OFFICE).length ? ' · Supporting: ' + esc((p.support_dept_ids || []).filter(x => x !== OFFICE).map(dname).join(', ')) : ''} · Requested by the Office ${esc(fmtDT(dr.asked_at))}</span></div>
     ${dr.note ? `<div class="dr-note">💬 Office: “${esc(dr.note)}”</div>` : ''}
-    <div class="hsec">Answers from the departments</div>${drDepts(p).map(row).join('')}
+    <div class="hsec">Lead department’s answer</div>${drAppr(p).map(row).join('')}${drSupp(p).length ? `<div class="tiny muted" style="margin:6px 2px 0">Supporting (kept in the loop, no approval needed): ${esc(drSupp(p).map(dname).join(', '))}</div>` : ''}
     ${(dr.log || []).length ? `<details style="margin-top:10px"><summary class="small muted" style="cursor:pointer">History (${dr.log.length})</summary>${dr.log.slice().reverse().map(l => `<div class="tiny" style="padding:3px 0">${esc(fmtDT(l.at))} · ${esc(l.by || '')} — ${esc(l.text)}</div>`).join('')}</details>` : ''}
     <div class="row" style="justify-content:space-between;gap:8px;margin-top:14px;flex-wrap:wrap">${coord ? `<button class="btn ghost" data-act="dreqCancel" data-id="${p.id}" style="color:var(--bad)">Cancel this request</button><span class="spacer"></span><button class="btn" data-act="dreqEdit" data-id="${p.id}">✏️ Change & ask again</button>` : '<span class="spacer"></span>'}<button class="btn pri" data-act="closeModal">Done</button></div>`;
 }
@@ -6169,7 +6172,7 @@ Object.assign(ACT, {
     if (!r.department_id) { toast('Pick the lead department', 'bad'); return; }
     const old = r.id ? S.requests.find(x => x.id === r.id) : null; const t0 = nowIso();
     const sup = (r.support_dept_ids || []).filter(x => x !== r.department_id);
-    const resp = {}; [r.department_id, ...sup].filter(x => x !== OFFICE).forEach(id => { resp[id] = {status: 'pending'}; });
+    const resp = {}; [r.department_id].filter(x => x !== OFFICE).forEach(id => { resp[id] = {status: 'pending'}; });
     const p = {...(old || {}), id: r.id || uid(), kind: 'event', title: r.title, status: 'request', start_date: r.start_date, end_date: null, start_time: r.t1 || null, end_time: r.t2 || null, location: r.location || '',
       department_id: r.department_id, support_dept_ids: sup, tasks: (old && old.tasks) || [], notes: (old && old.notes) || [], costs: [], files: [], photos: [], flags: {}, approval_status: 'none',
       created_by: (old && old.created_by) || me(), created_at: (old && old.created_at) || t0, updated_at: t0,
@@ -6178,7 +6181,7 @@ Object.assign(ACT, {
     const btn = $('[data-act="dreqSend"]'); if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
     try { await drSave(p); } catch (e) { console.error(e); toast('Could not send: ' + (e.message || e), 'bad'); if (btn) { btn.disabled = false; btn.textContent = 'Send for approval →'; } return; }
     S.modal = {type: 'dreqView', id: p.id}; renderModal(); rerender();
-    toast(`Sent to ${drDepts(p).length} department${drDepts(p).length === 1 ? '' : 's'} for approval`, 'ok');
+    toast(`Sent to ${dname(p.department_id)} for approval`, 'ok');
   },
   async dreqOk(d) { const p = S.requests.find(x => x.id === d.id); if (!p) return; const R = p.date_request.responses = p.date_request.responses || {};
     const byOffice = d.office === '1'; if (byOffice && !confirm(`Mark ${dname(d.dept)} as approved? Use this when the director said yes in person or by phone.`)) return;
@@ -6194,11 +6197,11 @@ Object.assign(ACT, {
     drLog(p, `${dname(md.dept)} suggested ${fmtD(date, DR_FMT)}`);
     if (await drCommit(p, 'Suggestion sent to the Office')) { S.modal = null; renderModal(); } },
   async dreqUse(d) { const p = S.requests.find(x => x.id === d.id); if (!p) return; const s = drResp(p)[d.dept]; if (!s || !s.date) return;
-    if (!confirm(`Move “${p.title}” to ${fmtD(s.date, DR_FMT)} and ask the other departments again?`)) return;
+    if (!confirm(`Move “${p.title}” to ${fmtD(s.date, DR_FMT)}? ${dname(d.dept)} suggested it, so the date is then approved.`)) return;
     const dr = p.date_request; p.start_date = s.date; if (s.t1) { dr.t1 = s.t1; p.start_time = s.t1; } if (s.t2) { dr.t2 = s.t2; p.end_time = s.t2; }
-    drDepts(p).forEach(id => { dr.responses[id] = id === d.dept ? {status: 'approved', by: s.by, at: nowIso(), note: 'Suggested this date'} : {status: 'pending'}; });
-    drLog(p, `The Office moved it to ${fmtD(s.date, DR_FMT)} (${dname(d.dept)}’s suggestion) and asked again`);
-    await drCommit(p, 'Date changed — the other departments were asked again'); if (S.modal) renderModal(); },
+    dr.responses[d.dept] = {status: 'approved', by: s.by, at: nowIso(), note: 'Suggested this date'};
+    drLog(p, `The Office moved it to ${fmtD(s.date, DR_FMT)} (${dname(d.dept)}’s suggestion)`);
+    await drCommit(p, 'Date changed'); if (S.modal && S.requests.some(x => x.id === p.id)) renderModal(); else if (S.modal) { S.modal = null; renderModal(); } },
   async dreqKeep(d) { const p = S.requests.find(x => x.id === d.id); if (!p) return;
     p.date_request.responses[d.dept] = {status: 'pending', note: 'The Office kept the original date'};
     drLog(p, `The Office kept ${fmtD(p.start_date, DR_FMT)} and asked ${dname(d.dept)} again`);
@@ -6224,7 +6227,7 @@ const _calLine37 = calLine;
 calLine = function (it) {
   if (it.kind !== 'req' && it.kind !== 'reqs') return _calLine37(it);
   const dd = dOf(it.date); const p = it.p; const dr = drOf(p);
-  const sub = it.kind === 'reqs' ? `Suggested by ${esc(dname(it.dept))} instead of ${esc(fmtD(p.start_date, {month: 'short', day: 'numeric'}))}` : `${esc(dname(p.department_id))}${(p.support_dept_ids || []).length ? ' + ' + (p.support_dept_ids || []).filter(x => x !== OFFICE).length + ' supporting' : ''}${dr.t1 ? ' · ' + esc(drTimes(dr.t1, dr.t2)) : ''}${p.location ? ' · ' + esc(p.location) : ''} · ${drCount(p)}`;
+  const sub = it.kind === 'reqs' ? `Suggested by ${esc(dname(it.dept))} instead of ${esc(fmtD(p.start_date, {month: 'short', day: 'numeric'}))}` : `${esc(dname(p.department_id))}${(p.support_dept_ids || []).length ? ' + ' + (p.support_dept_ids || []).filter(x => x !== OFFICE).length + ' supporting' : ''}${dr.t1 ? ' · ' + esc(drTimes(dr.t1, dr.t2)) : ''}${p.location ? ' · ' + esc(p.location) : ''} · ${esc(drCount(p))}`;
   return `<div class="calrow dr-cal ${it.kind}" ${itemAct(it)}><div class="calday"><span>${dd.toLocaleDateString('en-US', {weekday: 'short'})}</span><b>${dd.getDate()}</b></div><div class="main"><b>${it.kind === 'reqs' ? '? ' : '⏳ '}${esc(p.title)}</b> <span class="type-pill" style="margin:0">${it.kind === 'reqs' ? 'Suggested date' : 'Date pending'}</span><div class="tiny muted">${sub}</div></div></div>`;
 };
 const DR_NEWBTN = '<button class="btn gold" data-act="newEvent">📅 + New event</button>';
@@ -6242,7 +6245,7 @@ header = function () { let h = _header37(); const n = dreqMyCount() + hoForMe().
 /* ---------- Home ---------- */
 function drHomeRow(p, depts) { const dr = drOf(p); return depts.map(id => `<div class="trow dr-home" style="border-left:4px solid ${deptColor(p.department_id)}"><span style="font-size:18px">📅</span>
   <div class="main" data-act="dreqOpen" data-id="${p.id}" style="cursor:pointer"><b>${esc(p.title)}</b><div class="small">${esc(fmtD(p.start_date, DR_FMT))}${dr.t1 ? ' · ' + esc(drTimes(dr.t1, dr.t2)) : ''}${p.location ? ' · ' + esc(p.location) : ''}</div>
-  <div class="tiny muted">For ${esc(dname(id))} (${drRole(p, id)}) · requested by the Office · ${drCount(p)}</div>${dr.note ? `<div class="tiny" style="margin-top:3px;color:var(--navy)">💬 “${esc(dr.note)}”</div>` : ''}</div>
+  <div class="tiny muted">For ${esc(dname(id))} (lead)${drSupp(p).length ? ' · supporting: ' + esc(drSupp(p).map(dname).join(', ')) : ''} · requested by the Office</div>${dr.note ? `<div class="tiny" style="margin-top:3px;color:var(--navy)">💬 “${esc(dr.note)}”</div>` : ''}</div>
   <div class="row" style="gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn sm ok" data-act="dreqOk" data-id="${p.id}" data-dept="${id}">✓ Approve</button><button class="btn sm" data-act="dreqSug" data-id="${p.id}" data-dept="${id}">📅 Suggest a date</button></div></div>`).join(''); }
 const _viewHome37 = viewHome;
 viewHome = function () {
@@ -6255,7 +6258,7 @@ viewHome = function () {
     const oldest = D.map(p => drOf(p).asked_at).filter(Boolean).sort()[0]; const dueH = H.map(x => x.h.due).filter(Boolean).sort()[0];
     const tile = (n, l, s, go) => `<button class="dr-tile ${n ? 'on' : ''}" ${go && n ? `data-act="hScroll" data-v="${go}"` : 'disabled'}><b>${n}</b><span><span class="l">${l}</span><span class="s">${s}</span></span></button>`;
     top = `<div class="dr-wait" id="h_wait">${tile(nD, 'Dates to OK', oldest ? 'Oldest sent ' + fmtD(oldest.slice(0, 10), {month: 'short', day: 'numeric'}) : 'All caught up', 'h_dreq')}${tile(H.length, 'Event sections for you', dueH ? 'Next due ' + fmtD(dueH, {month: 'short', day: 'numeric'}) : H.length ? 'No due date' : 'All caught up', 'h_ho')}${typeof pressWaiting === 'function' && typeof canApprovePress === 'function' && canApprovePress() ? tile(pressN, 'Press releases to OK', pressN ? 'Waiting for you' : 'All caught up', null) : ''}</div>`;
-    if (D.length) boxes += `<div class="hsec" id="h_dreq" style="margin-top:0">📅 Dates waiting for your OK (${nD})</div>${D.map(p => drHomeRow(p, drDepts(p).filter(id => mine.has(id) && drSt(p, id) === 'pending'))).join('')}`;
+    if (D.length) boxes += `<div class="hsec" id="h_dreq" style="margin-top:0">📅 Dates waiting for your OK (${nD})</div>${D.map(p => drHomeRow(p, drAppr(p).filter(id => mine.has(id) && drSt(p, id) === 'pending'))).join('')}`;
     if (H.length) boxes += `<div class="hsec" id="h_ho">↗ Event sections waiting for you (${H.length})</div>${H.map(({x, h: ho}) => `<div class="trow" style="border-left:4px solid ${deptColor(ho.dept_id)}"><span style="font-size:18px">↗</span>
       <div class="main" data-act="hoOpenMine" data-pid="${x.id}" data-h="${ho.id}" style="cursor:pointer"><b>${esc(stepName(x.wizard, ho.step))} — ${HO_MODE[ho.mode] || 'Fill in'}</b><div class="small">${esc(x.title)}${x.start_date ? ' · ' + esc(fmtD(x.start_date, {month: 'short', day: 'numeric'})) : ''}</div>
       <div class="tiny muted">For ${esc(dname(ho.dept_id))} · from the Office${ho.due ? ` · <b style="color:${ho.due < today() ? 'var(--bad)' : 'var(--warn)'}">due ${esc(fmtD(ho.due, {month: 'short', day: 'numeric'}))}</b>` : ''}</div>${ho.note ? `<div class="tiny" style="margin-top:3px;color:var(--navy)">💬 “${esc(ho.note)}”</div>` : ''}</div>
@@ -6263,9 +6266,9 @@ viewHome = function () {
   }
   if (coord) {
     const out = S.requests.slice().sort((a, b) => String(a.start_date).localeCompare(String(b.start_date)));
-    if (out.length) boxes += `<div class="hsec">📅 Date requests out for approval (${out.length})</div>${out.map(p => { const nd = drNewDates(p).length; return `<div class="trow" style="border-left:4px dashed #c98a2b;background:#fffaf2"><span style="font-size:18px">⏳</span><div class="main" data-act="dreqOpen" data-id="${p.id}" style="cursor:pointer"><b>${esc(p.title)}</b><div class="small">${esc(fmtD(p.start_date, DR_FMT))} · ${esc(dname(p.department_id))}</div><div class="tiny muted">${drCount(p)}${nd ? ` · <b style="color:var(--warn)">${nd} new date suggested — your call</b>` : ''}</div></div><button class="btn sm" data-act="dreqOpen" data-id="${p.id}">See answers</button></div>`; }).join('')}`;
+    if (out.length) boxes += `<div class="hsec">📅 Date requests out for approval (${out.length})</div>${out.map(p => { const nd = drNewDates(p).length; return `<div class="trow" style="border-left:4px dashed #c98a2b;background:#fffaf2"><span style="font-size:18px">⏳</span><div class="main" data-act="dreqOpen" data-id="${p.id}" style="cursor:pointer"><b>${esc(p.title)}</b><div class="small">${esc(fmtD(p.start_date, DR_FMT))} · ${esc(dname(p.department_id))}</div><div class="tiny muted">${nd ? '<b style="color:var(--warn)">New date suggested — your call</b>' : esc(drCount(p))}</div></div><button class="btn sm" data-act="dreqOpen" data-id="${p.id}">See answers</button></div>`; }).join('')}`;
     const ready = S.drafts.filter(x => (x.wizard || {}).from_request && x.date_request && x.date_request.done_at && x.date_request.done_at.slice(0, 10) >= addDays(today(), -14));
-    if (ready.length) boxes += `<div class="hsec">✅ Dates approved — ready to plan (${ready.length})</div>${ready.map(x => `<div class="trow" style="border-left:4px solid var(--ok)"><span style="font-size:18px">✅</span><div class="main" data-act="draftOpen" data-id="${x.id}" style="cursor:pointer"><b>${esc(x.title)}</b><div class="tiny muted">${esc(fmtD(x.start_date, DR_FMT))} · approved by every department ${esc(fmtDT(x.date_request.done_at))}</div></div><button class="btn sm pri" data-act="draftOpen" data-id="${x.id}">Finish planning</button></div>`).join('')}`;
+    if (ready.length) boxes += `<div class="hsec">✅ Dates approved — ready to plan (${ready.length})</div>${ready.map(x => `<div class="trow" style="border-left:4px solid var(--ok)"><span style="font-size:18px">✅</span><div class="main" data-act="draftOpen" data-id="${x.id}" style="cursor:pointer"><b>${esc(x.title)}</b><div class="tiny muted">${esc(fmtD(x.start_date, DR_FMT))} · approved by the lead department ${esc(fmtDT(x.date_request.done_at))}</div></div><button class="btn sm pri" data-act="draftOpen" data-id="${x.id}">Finish planning</button></div>`).join('')}`;
     const S2 = hoSentOut();
     if (S2.length) boxes += `<div class="hsec">↗ Sections sent to departments (${S2.length})</div>${S2.map(({x, h: ho}) => { const back = ho.status !== 'open';
       return `<div class="trow" style="border-left:4px solid ${deptColor(ho.dept_id)}"><span style="font-size:18px">${back ? (ho.status === 'changes' ? '✏️' : '✓') : '↗'}</span><div class="main" data-act="hoOfficeOpen" data-pid="${x.id}" data-step="${ho.step}" style="cursor:pointer"><b>${esc(x.title)} · ${esc(stepName(x.wizard, ho.step))}</b>
