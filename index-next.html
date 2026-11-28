@@ -2,6 +2,36 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script id="delc-guard">/* DELC input guard (2026-11-27) — same block in every delcAPP.
+ 1) Windows: a click on a window's dark background only counts when the press started there too. Dragging to highlight
+    words in a box and letting go outside the window no longer closes it.
+ 2) Date & time boxes: browsers report a change as soon as one part (like the hour) is typed, and apps that redraw on a
+    change threw the cursor out before the minutes. Typed changes now wait until you leave the box or press Enter.
+    Picking from the calendar pop-up is not held. */
+(function(){
+  var down=null;
+  window.addEventListener('mousedown',function(e){down=e.target;},true);
+  window.addEventListener('click',function(e){
+    var s=down,t=e.target;down=null;
+    if(!s||s===t||!t||!t.contains||!t.contains(s))return;
+    var inBox=s.closest&&s.closest('input,textarea,select,[contenteditable]');
+    var sel='';try{sel=String(window.getSelection()||'');}catch(x){}
+    if(inBox||sel){e.stopImmediatePropagation();e.preventDefault();}
+  },true);
+  if(window.DELC_NO_DATE_HOLD)return;
+  function dt(t){return !!(t&&t.tagName==='INPUT'&&/^(date|time|datetime-local|month|week)$/.test(t.type));}
+  function flush(t){t.__dh=0;if(!t.__dp)return;t.__dp=0;
+    ['input','change'].forEach(function(n){var ev=new Event(n,{bubbles:true});ev.__delcReplay=1;t.dispatchEvent(ev);});}
+  window.addEventListener('keydown',function(e){var t=e.target;if(!dt(t))return;
+    if(e.key==='Enter'){flush(t);return;}
+    if(e.key&&(e.key.length===1||/^(Backspace|Delete|ArrowUp|ArrowDown)$/.test(e.key)))t.__dh=1;},true);
+  function hold(e){var t=e.target;if(dt(t)&&t.__dh&&!e.__delcReplay){e.stopImmediatePropagation();t.__dp=1;}}
+  window.addEventListener('input',hold,true);
+  window.addEventListener('change',hold,true);
+  window.addEventListener('focusout',function(e){if(dt(e.target))flush(e.target);},true);
+})();
+</script>
+
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="https://delcdata.github.io/DELCAppsHub/delc-kit.js?v=4"></script>
 <title>delcBOARD</title>
@@ -1629,14 +1659,14 @@ const fbTotal = e => { const a = e.attendance || {}; return (a.adults || 0) + (a
 function fbBox(p, can) {
   const e = fbOf(p);
   if (p.fb_event_id) {
-    if (!e) return `<div class="box"><div class="sectitle">🍽️ F&amp;B Events</div><div class="small">Linked to F&amp;B event #${esc(p.fb_event_id)} (not loaded yet).</div><div class="row" style="gap:6px;margin-top:6px"><a class="btn xs" href="${FB_URL}" target="_blank" rel="noopener">Open F&amp;B Portal ↗</a>${can ? '<button class="btn xs ghost" data-act="fbUnlink">Unlink</button>' : ''}</div></div>`;
+    if (!e) return `<div class="box"><div class="sectitle">🍽️ F&amp;B Events</div><div class="small">Linked to F&amp;B event #${esc(p.fb_event_id)} (not loaded yet).</div><div class="row" style="gap:6px;margin-top:6px"><a class="btn xs" href="${FB_URL}">Open F&amp;B Portal</a>${can ? '<button class="btn xs ghost" data-act="fbUnlink">Unlink</button>' : ''}</div></div>`;
     const f = e.financials || {}; const att = fbTotal(e);
     const drift = (e.name !== p.title || String(e.date) !== String(p.start_date || ''));
     return `<div class="box" style="border-color:#1B3254"><div class="row between"><div class="sectitle" style="margin:0">🍽️ F&amp;B Events</div><span class="chip info">${esc(e.status || 'Scheduled')}</span></div>
       <div class="small" style="margin-top:4px"><b>${esc(e.name)}</b> · ${esc(e.type || '')} · ${esc(fmtD(e.date, {month: 'short', day: 'numeric', year: 'numeric'}))}</div>
       ${e.menu ? `<div class="tiny muted">Menu: ${esc(e.menu)}</div>` : ''}
       ${att || f.totalCost || f.totalOffering ? `<div class="row" style="gap:6px;margin-top:6px;flex-wrap:wrap">${att ? `<span class="chip gray">👥 ${att}</span>` : ''}${f.totalCost ? `<span class="chip gray">Cost ${money(f.totalCost)}</span>` : ''}${f.totalOffering ? `<span class="chip gray">Offering ${money(f.totalOffering)}</span>` : ''}${f.totalCost || f.totalOffering ? `<span class="chip ${(f.totalIncome || 0) >= 0 ? 'ok' : 'bad'}">Net ${money(f.totalIncome || 0)}</span>` : ''}</div>` : '<div class="tiny muted" style="margin-top:4px">Menu, purchases, volunteers and the offering count are kept in the F&amp;B Portal.</div>'}
-      <div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap"><a class="btn xs" href="${FB_URL}" target="_blank" rel="noopener">Open F&amp;B Portal ↗</a>${can && drift ? '<button class="btn xs gold" data-act="fbSync" title="Copy this plan’s name, date and time to the F&B event">Update F&amp;B name/date</button>' : ''}${can ? '<button class="btn xs ghost" data-act="fbUnlink">Unlink</button>' : ''}</div></div>`;
+      <div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap"><a class="btn xs" href="${FB_URL}">Open F&amp;B Portal</a>${can && drift ? '<button class="btn xs gold" data-act="fbSync" title="Copy this plan’s name, date and time to the F&B event">Update F&amp;B name/date</button>' : ''}${can ? '<button class="btn xs ghost" data-act="fbUnlink">Unlink</button>' : ''}</div></div>`;
   }
   if (!can) return '';
   const linked = new Set(S.projects.map(x => String(x.fb_event_id || '')));
@@ -2409,11 +2439,11 @@ function viewServices() {
   const sub = `<div class="sub-tab-bar">${[['week','Services'],['report','Weekly report']].map(([k, l]) => `<button class="sub-tab ${S.svcTab === k ? 'on' : ''}" data-act="svcTab" data-v="${k}">${l}</button>`).join('')}</div>`;
   if (!S.attLoaded) return `<div class="page">${sub}<div class="card empty">Loading attendance &amp; giving…</div></div>`;
   const {all, i} = svcWeekPick();
-  if (i < 0) return `<div class="page">${sub}<div class="card empty">No services entered yet. They’re entered in <a href="${ATT_URL}" target="_blank" rel="noopener">Attendance &amp; Giving</a>.</div></div>`;
+  if (i < 0) return `<div class="page">${sub}<div class="card empty">No services entered yet. They’re entered in <a href="${ATT_URL}">Attendance &amp; Giving</a>.</div></div>`;
   const sun = S.svcWeek;
   const head = `<div class="wk-head"><div class="ttl"><small>Week of</small><b>${esc(fmtD(sun, {month: 'long', day: 'numeric', year: 'numeric'}))}</b></div>
     <button class="btn sm" data-act="svcWk" data-v="-1" ${i > 0 ? '' : 'disabled'} aria-label="Previous week">‹</button><button class="btn sm" data-act="svcWk" data-v="1" ${i < all.length - 1 ? '' : 'disabled'} aria-label="Next week">›</button>
-    ${S.svcTab === 'report' ? '<button class="btn pri sm" data-act="svcPrint">🖨 Print</button>' : '<button class="btn sm" data-act="svcTab" data-v="report">📄 Weekly report</button>'}<a class="btn sm" href="${ATT_URL}" target="_blank" rel="noopener">Open Attendance &amp; Giving ↗</a></div>`;
+    ${S.svcTab === 'report' ? '<button class="btn pri sm" data-act="svcPrint">🖨 Print</button>' : '<button class="btn sm" data-act="svcTab" data-v="report">📄 Weekly report</button>'}<a class="btn sm" href="${ATT_URL}">Open Attendance &amp; Giving</a></div>`;
   return `<div class="page">${sub}${head}${S.svcTab === 'report' ? svcReport(sun, all, i) : svcOverview(sun, all, i)}</div>`;
 }
 function svcOverview(sun, all, i) {
@@ -3701,8 +3731,8 @@ function facBox(p, can) {
     ${on ? `<div class="tiny muted" style="margin-top:4px">It’s sent to delcFACILITIES as a work order so Facility &amp; Security can schedule it. Facility &amp; Security is added as a helping department.</div>
       <div class="grid2" style="margin-top:8px"><label class="f">Where<select id="pj_floc" ${dis}><option value="">— pick —</option>${FAC_LOCS.map(l => `<option ${sameName(l, p.fac_location || p.location) ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
         <label class="f">Priority<select id="pj_fpri" ${dis}>${[['low','Low'],['normal','Normal'],['high','High'],['urgent','Urgent']].map(([k, l]) => `<option value="${k}" ${(p.fac_priority || 'normal') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
-      ${w ? `<div class="facst">🔧 <b>Work order #${esc(w.num || '')}</b><span class="chip ${w.status === 'done' ? 'ok' : w.status === 'new' ? 'info' : 'gold'}">${esc(FAC_STATUS[w.status] || w.status)}</span>${w.due_date ? `<span class="tiny muted">due ${esc(fmtD(w.due_date, {month: 'short', day: 'numeric'}))}</span>` : ''}<span class="spacer"></span>${can ? '<button class="btn xs" data-act="facSync">Update work order</button>' : ''}<a class="btn xs" href="${FAC_URL}" target="_blank" rel="noopener">Open delcFACILITIES ↗</a></div>`
-        : p.fac_work_id ? `<div class="facst">🔧 Sent to delcFACILITIES <a class="btn xs" href="${FAC_URL}" target="_blank" rel="noopener">Open ↗</a></div>` : (can ? `<button class="btn sm gold" data-act="facSend" style="margin-top:8px">🔧 Send to delcFACILITIES</button>` : '')}` : ''}`;
+      ${w ? `<div class="facst">🔧 <b>Work order #${esc(w.num || '')}</b><span class="chip ${w.status === 'done' ? 'ok' : w.status === 'new' ? 'info' : 'gold'}">${esc(FAC_STATUS[w.status] || w.status)}</span>${w.due_date ? `<span class="tiny muted">due ${esc(fmtD(w.due_date, {month: 'short', day: 'numeric'}))}</span>` : ''}<span class="spacer"></span>${can ? '<button class="btn xs" data-act="facSync">Update work order</button>' : ''}<a class="btn xs" href="${FAC_URL}">Open delcFACILITIES</a></div>`
+        : p.fac_work_id ? `<div class="facst">🔧 Sent to delcFACILITIES <a class="btn xs" href="${FAC_URL}">Open</a></div>` : (can ? `<button class="btn sm gold" data-act="facSend" style="margin-top:8px">🔧 Send to delcFACILITIES</button>` : '')}` : ''}`;
   return ddWrap(p, 'fac', on, '🔧 Facilities', w ? `#${esc(w.num || '')} · ${esc(FAC_STATUS[w.status] || w.status)}` : on ? 'not sent yet' : 'not building-related', inner);
 }
 
@@ -5794,7 +5824,7 @@ ACT.eduClassOpen = function (d) {
     <div class="stack"><div><b>${fmtD(d.d)}</b>${m.time ? ' · ' + esc(m.time) : ''}</div>
     <div class="small">${esc(when)}${c.place ? ' · 📍 ' + esc(c.place) : ''}${c.ages ? ' · ' + esc(c.ages) : ''}</div>
     <div class="tiny muted">This class is scheduled in delcEDUCATION. Change its dates, teachers or class list there and the calendar follows.</div>
-    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Close</button><a class="btn pri" href="${EDU_URL}" target="_blank" rel="noopener">Open delcEDUCATION</a></div></div>`};
+    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Close</button><a class="btn pri" href="${EDU_URL}">Open delcEDUCATION</a></div></div>`};
   renderModal();
 };
 const _renderModal33 = renderModal;
